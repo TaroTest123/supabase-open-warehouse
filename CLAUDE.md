@@ -113,7 +113,6 @@ tbls doc                                          # tbls スキーマドキュ�
 npx @liam-hq/cli erd build --format tbls \
   --input docs-generated/schema/schema.json \
   --output-dir docs-generated/erd                 # Liam ERD 生成
-bash scripts/patch-dbt-docs.sh                    # dbt docs 静的ホスティング用パッチ
 ```
 
 ## MCP サーバー & Skills

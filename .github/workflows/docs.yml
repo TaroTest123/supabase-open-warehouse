@@ -67,19 +67,14 @@ jobs:
         working-directory: dbt
         run: uv run dbt docs generate --profiles-dir .
 
-      - name: Patch dbt docs for static hosting
-        run: bash scripts/patch-dbt-docs.sh
-
       # --- Assemble site ---
       - name: Assemble _site
         run: |
-          mkdir -p _site/schema _site/erd _site/dbt
+          mkdir -p _site/schema _site/erd
           cp docs/index.html _site/
           cp -r docs-generated/schema/* _site/schema/
           cp -r docs-generated/erd/* _site/erd/
-          cp dbt/target/index.html _site/dbt/
-          # Include JSON as fallback (patched HTML has them inlined)
-          cp dbt/target/manifest.json dbt/target/catalog.json _site/dbt/ 2>/dev/null || true
+          cp -r dbt/target _site/dbt
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
