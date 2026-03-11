@@ -31,7 +31,12 @@ https://<user>.github.io/supabase-open-warehouse/
 tbls は PostgreSQL に直接接続してテーブル定義（カラム型・制約・インデックス）を Markdown + SVG で出力する。
 dbt が作るビュー/テーブルには `COMMENT ON` がないため、`.tbls.yml` の `comments` セクションで補完している。
 
-CI では pandoc でダークテーマの HTML に変換し、`README.html` → `index.html` にリネームして配信する。
+CI では以下の手順で HTML 化して配信する:
+
+1. `tbls doc` で Markdown + SVG + `schema.json` を生成
+2. pandoc でダークテーマの HTML に変換（テンプレートは `/tmp/schema.html` に書き出して `--template` で参照）
+3. 変換前に `sed` で Markdown 内の `.md` リンクを `.html` に置換（tbls が生成するテーブル間リンクが `.md` のため）
+4. `README.html` → `index.html` にリネーム
 
 **対象テーブル/ビュー**（`.tbls.yml` の `include` で制御）:
 
@@ -135,3 +140,26 @@ npx serve _site
 | dbt docs が空白 | `manifest.json` / `catalog.json` が未配信 | `target/` ごとコピーされているか確認 |
 | tbls に新テーブルが反映されない | `.tbls.yml` の `include` に未追加 | `include` と `comments` を更新 |
 | CI で Supabase start が遅い | Docker pull に時間がかかる | 初回は 2-3 分かかるのは正常 |
+| schema/ 内のリンクが 404 | tbls の Markdown リンクが `.md` のまま | CI の sed 置換ステップを確認 |
+| pandoc `command not found` | ubuntu-latest に未インストール | `apt-get install pandoc` ステップを確認 |
+| pandoc テンプレートエラー | `--template=-` は非対応 | テンプレートをファイルに書き出して `--template=/tmp/schema.html` で参照 |
+| dbt docs の JSON インライン化 | 不要 | `target/` をそのまま配信すれば `fetch()` で読み込める（同一オリジン） |
+
+## 設計判断の経緯
+
+### dbt docs のインライン化パッチは不要
+
+当初 `scripts/patch-dbt-docs.sh` で `manifest.json` / `catalog.json` を `index.html` にインライン化する方針だったが、
+以下の理由で不要と判断し削除した:
+
+- `sed` で数 MB の JSON をコマンドライン引数に展開すると `Argument list too long` エラーになる
+- Python スクリプトに書き換えれば解決可能だが、そもそも `target/` を丸ごと配信すれば `fetch()` で読み込める
+- 参考: [TaroTest123/dbt-core-init-project](https://github.com/TaroTest123/dbt-core-init-project) も同方式
+
+### tbls Markdown → HTML 変換
+
+tbls の出力は Markdown のため、GitHub Pages では直接表示できない（404 になる）。pandoc で HTML に変換する際の注意点:
+
+- **テンプレート**: `--template=-`（stdin）は pandoc 非対応。ファイルに書き出して参照する
+- **リンク置換**: tbls が生成するテーブル間リンクは `.md` 拡張子。pandoc 変換前に `sed 's/\.md)/\.html)/g; s/\.md#/\.html#/g'` で置換が必要
+- **pandoc インストール**: ubuntu-latest にはプリインストールされていないため `apt-get install` が必要
