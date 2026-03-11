@@ -1,55 +1,50 @@
 #!/usr/bin/env bash
 # patch-dbt-docs.sh — Inline manifest.json and catalog.json into dbt docs index.html
 # for static hosting (GitHub Pages) where fetch() cannot load local JSON files.
+#
+# Uses Python to avoid shell argument-length limits with large JSON files.
 set -euo pipefail
 
 DBT_TARGET="${1:-dbt/target}"
 INDEX_HTML="${DBT_TARGET}/index.html"
 
-if [ ! -f "$INDEX_HTML" ]; then
-  echo "Error: ${INDEX_HTML} not found" >&2
-  exit 1
-fi
-
-for json_file in manifest.json catalog.json; do
-  json_path="${DBT_TARGET}/${json_file}"
-  if [ ! -f "$json_path" ]; then
-    echo "Error: ${json_path} not found" >&2
+for f in "$INDEX_HTML" "${DBT_TARGET}/manifest.json" "${DBT_TARGET}/catalog.json"; do
+  if [ ! -f "$f" ]; then
+    echo "Error: ${f} not found" >&2
     exit 1
   fi
 done
 
 echo "Patching ${INDEX_HTML} for static hosting..."
 
-# Read JSON contents
-manifest_json=$(cat "${DBT_TARGET}/manifest.json")
-catalog_json=$(cat "${DBT_TARGET}/catalog.json")
+python3 - "$DBT_TARGET" <<'PYEOF'
+import sys, pathlib
 
-# Replace the o=[...search("manifest","manifest.json"...)] pattern
-# dbt docs uses: o=i defined by search("manifest","manifest.json",o)
-# We inject the JSON directly into the HTML as script tags
-# and patch the fetch calls to use the inlined data.
+target = pathlib.Path(sys.argv[1])
+index = target / "index.html"
+manifest = (target / "manifest.json").read_text()
+catalog = (target / "catalog.json").read_text()
 
-# Create a patched HTML that embeds the JSON data
-# The approach: add inline script tags before </head> with the JSON data,
-# then replace fetch-based loading with the inlined variables.
+html = index.read_text()
 
-# Insert JSON data as script tags before </head>
-sed -i "s|</head>|<script>var defined_manifest = ${manifest_json};</script><script>var defined_catalog = ${catalog_json};</script></head>|" "$INDEX_HTML"
+# Inject JSON as global variables before </head>
+injection = (
+    f'<script>var defined_manifest = {manifest};</script>\n'
+    f'<script>var defined_catalog = {catalog};</script>\n'
+)
+html = html.replace('</head>', injection + '</head>', 1)
 
-# Patch the JavaScript to use inlined data instead of fetching
-# dbt docs typically has patterns like:
-#   n(r,"manifest.json",...)  or  search("manifest","manifest.json",...)
-# We replace the content between <script> tags that reference manifest.json/catalog.json
+# Replace fetch references so dbt's JS uses the inlined data
+html = html.replace(
+    '"manifest.json"',
+    '"data:application/json," + JSON.stringify(defined_manifest)'
+)
+html = html.replace(
+    '"catalog.json"',
+    '"data:application/json," + JSON.stringify(defined_catalog)'
+)
 
-# For dbt-core >= 1.6, the index.html loads JSON via:
-#   o=i(n,"manifest.json",o) → we need to make these resolve to our inlined vars
-# The simplest reliable approach: replace the entire fetch mechanism
-
-# Replace manifest.json fetch references
-sed -i 's|"manifest.json"|"data:application/json," + JSON.stringify(defined_manifest)|g' "$INDEX_HTML"
-
-# Replace catalog.json fetch references
-sed -i 's|"catalog.json"|"data:application/json," + JSON.stringify(defined_catalog)|g' "$INDEX_HTML"
+index.write_text(html)
+PYEOF
 
 echo "Done. Patched ${INDEX_HTML} with inlined JSON data."
