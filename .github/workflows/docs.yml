@@ -55,6 +55,49 @@ jobs:
       - name: Generate tbls docs
         run: tbls doc
 
+      - name: Convert tbls Markdown to HTML
+        run: |
+          cd docs-generated/schema
+          # Convert each .md to .html with pandoc
+          for md in *.md; do
+            name="${md%.md}"
+            pandoc "$md" \
+              --standalone \
+              --metadata title="$(head -1 "$md" | sed 's/^#\+ //')" \
+              --template=- \
+              -o "${name}.html" <<'TEMPLATE'
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>$title$ - Schema Docs</title>
+          <style>
+          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #e2e8f0; max-width: 960px; margin: 0 auto; padding: 2rem; }
+          a { color: #60a5fa; }
+          h1, h2, h3 { color: #f8fafc; margin: 1.5rem 0 0.75rem; }
+          h1 { font-size: 1.75rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
+          table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+          th, td { border: 1px solid #334155; padding: 0.5rem 0.75rem; text-align: left; }
+          th { background: #1e293b; color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; }
+          td { font-size: 0.9rem; }
+          tr:hover { background: #1e293b; }
+          code { background: #1e293b; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }
+          img { max-width: 100%; height: auto; margin: 1rem 0; }
+          .nav { margin-bottom: 1.5rem; }
+          </style>
+          </head>
+          <body>
+          <div class="nav"><a href="./">← Schema Docs</a></div>
+          $body$
+          </body>
+          </html>
+          TEMPLATE
+          done
+          # Rename README.html to index.html
+          mv README.html index.html
+
       # --- Liam ERD ---
       - name: Generate Liam ERD
         run: |
@@ -72,7 +115,8 @@ jobs:
         run: |
           mkdir -p _site/schema _site/erd
           cp docs/index.html _site/
-          cp -r docs-generated/schema/* _site/schema/
+          # Copy HTML, SVG, and JSON (skip .md source files)
+          cp docs-generated/schema/*.html docs-generated/schema/*.svg docs-generated/schema/*.json _site/schema/
           cp -r docs-generated/erd/* _site/erd/
           cp -r dbt/target _site/dbt
 
