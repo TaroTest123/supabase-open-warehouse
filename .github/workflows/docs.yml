@@ -61,14 +61,8 @@ jobs:
       - name: Convert tbls Markdown to HTML
         run: |
           cd docs-generated/schema
-          # Convert each .md to .html with pandoc
-          for md in *.md; do
-            name="${md%.md}"
-            pandoc "$md" \
-              --standalone \
-              --metadata title="$(head -1 "$md" | sed 's/^#\+ //')" \
-              --template=- \
-              -o "${name}.html" <<'TEMPLATE'
+          # Write pandoc template to a temp file
+          cat > /tmp/schema.html <<'TPL'
           <!DOCTYPE html>
           <html lang="ja">
           <head>
@@ -96,7 +90,15 @@ jobs:
           $body$
           </body>
           </html>
-          TEMPLATE
+          TPL
+          # Convert each .md to .html
+          for md in *.md; do
+            name="${md%.md}"
+            pandoc "$md" \
+              --standalone \
+              --metadata title="$(head -1 "$md" | sed 's/^#\+ //')" \
+              --template=/tmp/schema.html \
+              -o "${name}.html"
           done
           # Rename README.html to index.html
           mv README.html index.html
