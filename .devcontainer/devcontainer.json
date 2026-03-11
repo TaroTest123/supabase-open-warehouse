@@ -7,7 +7,9 @@
       "version": "3.12",
       "installTools": false
     },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false
+    },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
 

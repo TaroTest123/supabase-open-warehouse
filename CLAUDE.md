@@ -107,6 +107,15 @@ cd dbt && uv run dbt test   # テスト実行
 cd dbt && uv run dbt docs generate  # ドキュメント生成
 ```
 
+### Documentation (tbls / Liam ERD / dbt docs)
+```bash
+tbls doc                                          # tbls スキーマドキュメント生成
+npx @liam-hq/cli erd build --format tbls \
+  --input docs-generated/schema/schema.json \
+  --output-dir docs-generated/erd                 # Liam ERD 生成
+bash scripts/patch-dbt-docs.sh                    # dbt docs 静的ホスティング用パッチ
+```
+
 ## MCP サーバー & Skills
 
 ### 公式 MCP サーバー（`.mcp.json` で管理）
