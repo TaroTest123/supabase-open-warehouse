@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: public
+    tables:
+      - name: raw_tepco_demand
+        description: "TEPCO でんき予報 CSV の生データ"
+        columns:
+          - name: id
+            description: "サロゲートキー"
+          - name: date_str
+            description: "日付文字列 (YYYY/M/D)"
+          - name: time_str
+            description: "時刻文字列 (H:00 or H:30)"
+          - name: demand_mw_str
+            description: "需要実績 (万kW, TEXT)"
+          - name: supply_capacity_mw_str
+            description: "供給力 (万kW, TEXT)"
+          - name: usage_pct_str
+            description: "使用率 (%, TEXT)"
+          - name: loaded_at
+            description: "データ取り込み日時"

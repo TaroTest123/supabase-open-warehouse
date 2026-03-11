@@ -1,0 +1,13 @@
+[project]
+name = "tepco-warehouse-dbt"
+version = "0.1.0"
+description = "dbt project for TEPCO Open Warehouse"
+requires-python = ">=3.12"
+dependencies = [
+    "dbt-core>=1.9,<2.0",
+    "dbt-postgres>=1.9,<2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

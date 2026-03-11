@@ -1,0 +1,12 @@
+tepco_warehouse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', '127.0.0.1') }}"
+      port: "{{ env_var('DBT_PORT', '54322') | int }}"
+      user: "{{ env_var('DBT_USER', 'postgres') }}"
+      pass: "{{ env_var('DBT_PASSWORD', 'postgres') }}"
+      dbname: "{{ env_var('DBT_DBNAME', 'postgres') }}"
+      schema: public
+      threads: 4
