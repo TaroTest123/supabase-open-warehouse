@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_tepco_demand
+    description: "TEPCO 電力需要データ（クレンジング・型変換済み）"
+    columns:
+      - name: id
+        description: "元テーブルのサロゲートキー"
+      - name: demand_date
+        description: "需要日 (DATE型)"
+        tests:
+          - not_null
+      - name: demand_time
+        description: "需要時刻 (TIME型)"
+        tests:
+          - not_null
+      - name: demand_mw
+        description: "需要実績 (MW)"
+        tests:
+          - not_null
+      - name: supply_capacity_mw
+        description: "供給力 (MW)"
+        tests:
+          - not_null
+      - name: usage_pct
+        description: "使用率 (%)"
+        tests:
+          - not_null
+      - name: loaded_at
+        description: "データ取り込み日時"

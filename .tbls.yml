@@ -1,0 +1,19 @@
+dsn: postgres://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable
+docPath: docs-generated/schema
+include:
+  - public.raw_tepco_demand
+  - public.stg_tepco_demand
+  - public.mart_daily_demand
+  - public.mart_hourly_demand
+  - public.mart_monthly_stats
+comments:
+  - table: public.raw_tepco_demand
+    tableComment: "TEPCO でんき予報 CSV の生データ格納テーブル"
+  - table: public.stg_tepco_demand
+    tableComment: "型変換・クレンジング・dedup 済みステージングビュー"
+  - table: public.mart_daily_demand
+    tableComment: "日次電力需要サマリ"
+  - table: public.mart_hourly_demand
+    tableComment: "日×時間帯の電力需要分析"
+  - table: public.mart_monthly_stats
+    tableComment: "月次電力需要統計"

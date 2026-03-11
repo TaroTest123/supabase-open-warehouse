@@ -1,0 +1,22 @@
+name: 'tepco_warehouse'
+version: '0.1.0'
+
+profile: 'tepco_warehouse'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  tepco_warehouse:
+    staging:
+      +materialized: view
+    mart:
+      +materialized: table

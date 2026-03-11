@@ -1,0 +1,64 @@
+version: 2
+
+models:
+  - name: mart_daily_demand
+    description: "日次電力需要サマリ"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: max_demand_mw
+        description: "日次最大需要 (MW)"
+      - name: min_demand_mw
+        description: "日次最小需要 (MW)"
+      - name: avg_demand_mw
+        description: "日次平均需要 (MW)"
+      - name: max_usage_pct
+        description: "日次最大使用率 (%)"
+      - name: record_count
+        description: "レコード数"
+
+  - name: mart_hourly_demand
+    description: "日×時間帯の電力需要分析"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - not_null
+      - name: hour_of_day
+        description: "時間帯 (0-23)"
+        tests:
+          - not_null
+      - name: avg_demand_mw
+        description: "時間帯平均需要 (MW)"
+      - name: max_demand_mw
+        description: "時間帯最大需要 (MW)"
+      - name: avg_usage_pct
+        description: "時間帯平均使用率 (%)"
+
+  - name: mart_monthly_stats
+    description: "月次電力需要統計"
+    columns:
+      - name: month_start
+        description: "月初日"
+        tests:
+          - unique
+          - not_null
+      - name: year_month
+        description: "年月 (YYYY-MM)"
+      - name: max_demand_mw
+        description: "月次最大需要 (MW)"
+      - name: min_demand_mw
+        description: "月次最小需要 (MW)"
+      - name: avg_demand_mw
+        description: "月次平均需要 (MW)"
+      - name: max_usage_pct
+        description: "月次最大使用率 (%)"
+      - name: avg_usage_pct
+        description: "月次平均使用率 (%)"
+      - name: record_count
+        description: "レコード数"
+      - name: days_with_data
+        description: "データのある日数"
