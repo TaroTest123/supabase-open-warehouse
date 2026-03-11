@@ -7,7 +7,3 @@ dependencies = [
     "dbt-core>=1.9,<2.0",
     "dbt-postgres>=1.9,<2.0",
 ]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
