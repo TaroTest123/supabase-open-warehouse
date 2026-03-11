@@ -94,11 +94,13 @@ jobs:
           # Convert each .md to .html
           for md in *.md; do
             name="${md%.md}"
-            pandoc "$md" \
-              --standalone \
-              --metadata title="$(head -1 "$md" | sed 's/^#\+ //')" \
-              --template=/tmp/schema.html \
-              -o "${name}.html"
+            # Replace .md links with .html before conversion
+            sed 's/\.md)/\.html)/g; s/\.md#/\.html#/g' "$md" | \
+              pandoc \
+                --standalone \
+                --metadata title="$(head -1 "$md" | sed 's/^#\+ //')" \
+                --template=/tmp/schema.html \
+                -o "${name}.html"
           done
           # Rename README.html to index.html
           mv README.html index.html
