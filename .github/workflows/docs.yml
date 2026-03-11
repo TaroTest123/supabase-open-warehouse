@@ -37,6 +37,9 @@ jobs:
       - name: Setup tbls
         uses: k1low/setup-tbls@v1
 
+      - name: Install pandoc
+        run: sudo apt-get install -y --no-install-recommends pandoc
+
       - name: Start Supabase
         run: supabase start
 
