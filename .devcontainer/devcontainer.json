@@ -1,0 +1,64 @@
+{
+  "name": "Supabase Open Warehouse",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": false
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.defaultFormatter": "biomejs.biome",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "quickfix.biome": "explicit",
+          "source.organizeImports.biome": "explicit"
+        },
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "tailwindCSS.experimental.classRegex": [
+          ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+        ],
+        "files.associations": {
+          "*.sql": "sql"
+        },
+        "[sql]": {
+          "editor.defaultFormatter": "mtxr.sqltools"
+        },
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      },
+      "extensions": [
+        "biomejs.biome",
+        "bradlc.vscode-tailwindcss",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        "innoverio.vscode-dbt-power-user",
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "supabase.supabase-vscode",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "forwardPorts": [3000, 54321, 54322, 54323],
+  "portsAttributes": {
+    "3000": { "label": "Next.js Dev Server" },
+    "54321": { "label": "Supabase API Gateway" },
+    "54322": { "label": "Supabase PostgreSQL" },
+    "54323": { "label": "Supabase Studio" }
+  },
+
+  "remoteEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  }
+}
