@@ -57,20 +57,16 @@ uv run dbt test --profiles-dir .
 
 ### 1.5 接続情報の確認
 
-Supabase ダッシュボード → **Settings** → **API** で以下を確認し控えておきます:
+ダッシュボード上部の **「Connect」ボタン** から API キーと DB 接続情報を確認できます。
+また **Settings → API Keys** でも確認可能です。
 
-| 項目 | 確認場所 |
-|------|---------|
-| Project URL | `https://<project-ref>.supabase.co` |
-| `anon` key | API Settings → Project API keys |
-| `service_role` key | API Settings → Project API keys（**秘密鍵 — 外部に公開しない**）|
-
-ダッシュボード → **Settings** → **Database** で以下も確認:
-
-| 項目 | 確認場所 |
-|------|---------|
-| Host | `db.<project-ref>.supabase.co` |
-| Port | `5432` |
+| 項目 | 確認場所 | 備考 |
+|------|---------|------|
+| Project URL | Connect ダイアログ / Settings → API Keys | `https://<project-ref>.supabase.co` |
+| `anon` key | Settings → API Keys | クライアント側で使用 |
+| `service_role` key | Settings → API Keys | **秘密鍵 — 外部に公開しない** |
+| DB Host | Connect ダイアログ | `db.<project-ref>.supabase.co` |
+| DB Port | Connect ダイアログ | 通常 `5432` |
 
 ---
 
@@ -184,11 +180,11 @@ GitHub リポジトリ → **Settings** → **Secrets and variables** → **Acti
 
 | Secret | 用途 | 値の取得元 |
 |--------|------|-----------|
-| `SUPABASE_URL` | Edge Function 呼び出し URL | Supabase → Settings → API → Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Edge Function 認証 | Supabase → Settings → API → `service_role` key |
+| `SUPABASE_URL` | Edge Function 呼び出し URL | Connect ダイアログ / Settings → API Keys → Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Edge Function 認証 | Settings → API Keys → `service_role` key |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI 認証（Edge Function デプロイ） | [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) で生成 |
-| `SUPABASE_PROJECT_REF` | Supabase プロジェクト参照 ID | Supabase → Settings → General → Reference ID |
-| `SUPABASE_DB_HOST` | dbt から DB に接続 | `db.<project-ref>.supabase.co` |
+| `SUPABASE_PROJECT_REF` | Supabase プロジェクト参照 ID | ダッシュボード URL の `project/<project-ref>` 部分 |
+| `SUPABASE_DB_HOST` | dbt から DB に接続 | Connect ダイアログ (`db.<project-ref>.supabase.co`) |
 | `SUPABASE_DB_USER` | dbt DB ユーザー | `postgres` |
 | `SUPABASE_DB_PASSWORD` | dbt DB パスワード | プロジェクト作成時のパスワード |
 
