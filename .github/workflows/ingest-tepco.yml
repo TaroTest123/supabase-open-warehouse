@@ -49,6 +49,14 @@ jobs:
       DBT_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       DBT_DBNAME: "postgres"
     steps:
+      - name: Debug secrets (temporary)
+        run: |
+          echo "DBT_HOST is set: ${{ secrets.SUPABASE_DB_HOST != '' }}"
+          echo "DBT_USER is set: ${{ secrets.SUPABASE_DB_USER != '' }}"
+          echo "DBT_PASSWORD is set: ${{ secrets.SUPABASE_DB_PASSWORD != '' }}"
+          echo "DBT_USER length: ${#DBT_USER}"
+          echo "DBT_USER first 10 chars: ${DBT_USER:0:10}"
+
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
