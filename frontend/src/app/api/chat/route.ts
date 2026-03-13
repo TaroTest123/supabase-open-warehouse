@@ -32,6 +32,13 @@ function validateSQL(sql: string): void {
 			throw new Error(`禁止キーワード "${keyword}" が含まれています`);
 		}
 	}
+
+	const BLOCKED_SCHEMAS = ["pg_catalog", "information_schema", "pg_tables", "pg_roles", "pg_stat"];
+	for (const schema of BLOCKED_SCHEMAS) {
+		if (normalized.includes(schema.toUpperCase())) {
+			throw new Error("システムテーブルへのアクセスは許可されていません");
+		}
+	}
 }
 
 const MAX_RESULT_ROWS = 100;
@@ -69,6 +76,13 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		if (message.length > 1000) {
+			return NextResponse.json(
+				{ error: "メッセージは1000文字以内で入力してください" },
+				{ status: 400 },
+			);
+		}
+
 		const result = await generateSQL(message);
 
 		if ("text" in result) {
@@ -98,8 +112,20 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json(response);
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "不明なエラーが発生しました";
-		return NextResponse.json({ error: errorMessage }, { status: 500 });
+		console.error("[chat/route] Error:", error);
+
+		let userMessage = "サーバーエラーが発生しました。しばらく経ってからお試しください。";
+		if (error instanceof Error) {
+			if (
+				error.message.includes("禁止キーワード") ||
+				error.message.includes("のみ許可されています")
+			) {
+				userMessage = error.message;
+			} else if (error.message.includes("SUPABASE_READONLY_DB_URL")) {
+				userMessage = "データベースの設定が完了していません。";
+			}
+		}
+
+		return NextResponse.json({ error: userMessage }, { status: 500 });
 	}
 }

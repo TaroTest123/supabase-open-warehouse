@@ -52,7 +52,7 @@ ${sql}
 
 ## 実行結果 (JSON)
 \`\`\`json
-${JSON.stringify(results, null, 2)}
+${JSON.stringify(results)}
 \`\`\``,
 			},
 		],

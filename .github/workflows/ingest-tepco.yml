@@ -1,0 +1,77 @@
+name: Ingest TEPCO CSV
+
+on:
+  schedule:
+    # 毎日 00:00 JST (15:00 UTC)
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+    inputs:
+      csv_url:
+        description: "CSV URL (空欄で当日実績を取得)"
+        required: false
+        type: string
+
+jobs:
+  ingest:
+    name: Fetch & upsert CSV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call ingest Edge Function
+        id: ingest
+        run: |
+          URL="${{ secrets.SUPABASE_URL }}/functions/v1/ingest-tepco-csv"
+          if [ -n "${{ inputs.csv_url }}" ]; then
+            URL="${URL}?url=${{ inputs.csv_url }}"
+          fi
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "status=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+          echo "body=$BODY" >> "$GITHUB_OUTPUT"
+          echo "Response ($HTTP_CODE): $BODY"
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::Edge Function returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  dbt-refresh:
+    name: dbt run & grant permissions
+    needs: ingest
+    runs-on: ubuntu-latest
+    env:
+      DBT_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      DBT_PORT: "5432"
+      DBT_USER: ${{ secrets.SUPABASE_DB_USER }}
+      DBT_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      DBT_DBNAME: "postgres"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install dbt dependencies
+        working-directory: dbt
+        run: uv sync
+
+      - name: Run dbt models
+        working-directory: dbt
+        run: uv run dbt run --profiles-dir .
+
+      - name: Run dbt tests
+        working-directory: dbt
+        run: uv run dbt test --profiles-dir .
+
+      - name: Grant readonly permissions on mart tables
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
+          PGPORT: "5432"
+          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGDATABASE: "postgres"
+        run: psql -c "SELECT grant_readonly_on_mart_tables();"
