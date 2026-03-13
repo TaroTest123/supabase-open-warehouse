@@ -177,6 +177,26 @@ claude
 
 設定は `.mcp.json`（Git 管理）に記載されています。
 
+## フロントエンド開発
+
+### shadcn/ui コンポーネント追加
+
+```bash
+pnpm dlx shadcn@latest add [component-name]
+```
+
+コンポーネントは `src/components/ui/` に生成されます。
+このディレクトリは Biome の lint 対象外です。
+
+### 開発ワークフロー
+
+```bash
+pnpm dev          # 開発サーバー起動 (http://localhost:3000)
+pnpm build        # プロダクションビルド
+pnpm check        # Biome lint + format チェック
+pnpm check:fix    # Biome lint + format 自動修正
+```
+
 ## 参考リンク
 
 - [TEPCO でんき予報](https://www.tepco.co.jp/forecast/) — データソース
