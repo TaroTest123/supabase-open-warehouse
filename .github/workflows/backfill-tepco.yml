@@ -1,0 +1,111 @@
+name: Backfill TEPCO ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_month:
+        description: "開始年月 (YYYYMM)"
+        required: true
+        type: string
+      end_month:
+        description: "終了年月 (YYYYMM)"
+        required: true
+        type: string
+
+jobs:
+  backfill:
+    name: Ingest ZIP for each month
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Ingest monthly ZIPs
+        run: |
+          START="${{ inputs.start_month }}"
+          END="${{ inputs.end_month }}"
+
+          # Validate format
+          if ! echo "$START" | grep -qE '^[0-9]{6}$'; then
+            echo "::error::start_month must be YYYYMM format"
+            exit 1
+          fi
+          if ! echo "$END" | grep -qE '^[0-9]{6}$'; then
+            echo "::error::end_month must be YYYYMM format"
+            exit 1
+          fi
+
+          CURRENT="$START"
+          FAILED=0
+
+          while [ "$CURRENT" -le "$END" ]; do
+            ZIP_URL="https://www.tepco.co.jp/forecast/html/images/${CURRENT}_power_usage.zip"
+            echo "=== Ingesting $CURRENT ($ZIP_URL) ==="
+
+            URL="${{ secrets.SUPABASE_URL }}/functions/v1/ingest-tepco-csv?url=${ZIP_URL}"
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -H "Content-Type: application/json")
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+            echo "Response ($HTTP_CODE): $BODY"
+
+            if [ "$HTTP_CODE" -ge 400 ]; then
+              echo "::warning::Failed to ingest $CURRENT (HTTP $HTTP_CODE)"
+              FAILED=$((FAILED + 1))
+            fi
+
+            # Advance to next month
+            YEAR=${CURRENT:0:4}
+            MONTH=${CURRENT:4:2}
+            NEXT_MONTH=$((10#$MONTH + 1))
+            NEXT_YEAR=$YEAR
+            if [ "$NEXT_MONTH" -gt 12 ]; then
+              NEXT_MONTH=1
+              NEXT_YEAR=$((YEAR + 1))
+            fi
+            CURRENT=$(printf "%04d%02d" "$NEXT_YEAR" "$NEXT_MONTH")
+          done
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::warning::$FAILED month(s) failed to ingest"
+          fi
+
+  dbt-refresh:
+    name: dbt run & grant permissions
+    needs: backfill
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      DBT_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      DBT_PORT: "5432"
+      DBT_USER: ${{ secrets.SUPABASE_DB_USER }}
+      DBT_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      DBT_DBNAME: "postgres"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
+        with:
+          enable-cache: true
+
+      - name: Install dbt dependencies
+        working-directory: dbt
+        run: uv sync
+
+      - name: Run dbt models
+        working-directory: dbt
+        run: uv run dbt run --profiles-dir .
+
+      - name: Run dbt tests
+        working-directory: dbt
+        run: uv run dbt test --profiles-dir .
+
+      - name: Grant readonly permissions on mart tables
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
+          PGPORT: "5432"
+          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGDATABASE: "postgres"
+        run: psql -c "SELECT grant_readonly_on_mart_tables();"

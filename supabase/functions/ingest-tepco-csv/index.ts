@@ -1,4 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { unzipSync } from "npm:fflate";
 
 const DEFAULT_CSV_URL =
   "https://www.tepco.co.jp/forecast/html/images/juyo-d1-j.csv";
@@ -43,21 +44,21 @@ Deno.serve(async (req) => {
   const startedAt = new Date().toISOString();
 
   try {
-    // Fetch CSV
-    const csvResponse = await fetch(csvUrl);
-    if (!csvResponse.ok) {
+    // Fetch data
+    const dataResponse = await fetch(csvUrl);
+    if (!dataResponse.ok) {
       throw new Error(
-        `Failed to fetch CSV: ${csvResponse.status} ${csvResponse.statusText}`,
+        `Failed to fetch data: ${dataResponse.status} ${dataResponse.statusText}`,
       );
     }
 
-    // Decode Shift_JIS to UTF-8
-    const buffer = await csvResponse.arrayBuffer();
-    const decoder = new TextDecoder("shift_jis");
-    const csvText = decoder.decode(buffer);
+    const buffer = await dataResponse.arrayBuffer();
+    const isZip = csvUrl.toLowerCase().endsWith(".zip");
 
-    // Parse CSV
-    const rows = parseCsv(csvText);
+    // Parse rows from ZIP or CSV
+    const rows: TepcoRow[] = isZip
+      ? parseZip(new Uint8Array(buffer))
+      : parseCsv(decodeShiftJis(buffer));
     const rowsFetched = rows.length;
 
     if (rowsFetched === 0) {
@@ -109,6 +110,26 @@ Deno.serve(async (req) => {
     return await errorResult(supabase, csvUrl, startedAt, errorMessage, 500);
   }
 });
+
+function decodeShiftJis(buffer: ArrayBuffer): string {
+  return new TextDecoder("shift_jis").decode(buffer);
+}
+
+/**
+ * Extract all CSV files from a ZIP archive and parse them into rows.
+ */
+function parseZip(zipBytes: Uint8Array): TepcoRow[] {
+  const entries = unzipSync(zipBytes);
+  const allRows: TepcoRow[] = [];
+
+  for (const [name, data] of Object.entries(entries)) {
+    if (!name.toLowerCase().endsWith(".csv")) continue;
+    const csvText = decodeShiftJis(data.buffer);
+    allRows.push(...parseCsv(csvText));
+  }
+
+  return allRows;
+}
 
 /**
  * Parse TEPCO CSV text into row objects.
