@@ -20,3 +20,5 @@ models:
       +materialized: view
     mart:
       +materialized: table
+      +post-hook:
+        - "GRANT SELECT ON {{ this }} TO readonly_user"
