@@ -63,10 +63,12 @@ uv run dbt test --profiles-dir .
 | 項目 | 確認場所 | 備考 |
 |------|---------|------|
 | Project URL | Connect ダイアログ / Settings → API Keys | `https://<project-ref>.supabase.co` |
-| `anon` key | Settings → API Keys | クライアント側で使用 |
-| `service_role` key | Settings → API Keys | **秘密鍵 — 外部に公開しない** |
+| Publishable key (`sb_publishable_...`) | Settings → API Keys | クライアント側で使用（旧 `anon` key） |
+| Secret key (`sb_secret_...`) | Settings → API Keys | **秘密鍵 — 外部に公開しない**（旧 `service_role` key） |
 | DB Host | Connect ダイアログ | `db.<project-ref>.supabase.co` |
 | DB Port | Connect ダイアログ | 通常 `5432` |
+
+> **キー形式**: Supabase は従来の JWT ベースの `anon` / `service_role` キーから、`sb_publishable_...` / `sb_secret_...` 形式に移行しています。どちらの形式も利用可能です。
 
 ---
 
@@ -85,9 +87,11 @@ supabase functions deploy ingest-tepco-csv
 
 ```bash
 curl -s -X POST "https://<project-ref>.supabase.co/functions/v1/ingest-tepco-csv" \
-  -H "Authorization: Bearer <service_role_key>" \
+  -H "Authorization: Bearer <secret_key>" \
   -H "Content-Type: application/json"
 ```
+
+> `<secret_key>` には `sb_secret_...` 形式の Secret key を使用します。
 
 成功時のレスポンス例:
 
@@ -107,7 +111,7 @@ curl -s -X POST "https://<project-ref>.supabase.co/functions/v1/ingest-tepco-csv
 ```bash
 # 2024年のデータ (~8,784行)
 curl -s -X POST "https://<project-ref>.supabase.co/functions/v1/ingest-tepco-csv?url=https://www.tepco.co.jp/forecast/html/images/juyo-2024.csv" \
-  -H "Authorization: Bearer <service_role_key>"
+  -H "Authorization: Bearer <secret_key>"
 ```
 
 > **注意**: 年次 CSV は 3 列 (DATE, TIME, 実績) のみで、供給力・使用率は含まれません。
@@ -150,8 +154,8 @@ Settings → Environment Variables に以下を設定:
 | Key | 説明 | 例 |
 |-----|------|-----|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL | `https://<ref>.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | `eyJ...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key | `eyJ...` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable key | `sb_publishable_...` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret key | `sb_secret_...` |
 | `SUPABASE_READONLY_DB_URL` | readonly_user の接続 URL | `postgresql://readonly_user:...` |
 | `ANTHROPIC_API_KEY` | Claude API キー | `sk-ant-...` |
 
@@ -181,7 +185,7 @@ GitHub リポジトリ → **Settings** → **Secrets and variables** → **Acti
 | Secret | 用途 | 値の取得元 |
 |--------|------|-----------|
 | `SUPABASE_URL` | Edge Function 呼び出し URL | Connect ダイアログ / Settings → API Keys → Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Edge Function 認証 | Settings → API Keys → `service_role` key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Edge Function 認証 | Settings → API Keys → Secret key (`sb_secret_...`) |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI 認証（Edge Function デプロイ） | [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) で生成 |
 | `SUPABASE_PROJECT_REF` | Supabase プロジェクト参照 ID | ダッシュボード URL の `project/<project-ref>` 部分 |
 | `SUPABASE_DB_HOST` | dbt から DB に接続 | Connect ダイアログ (`db.<project-ref>.supabase.co`) |
@@ -222,8 +226,8 @@ Secrets 設定後:
 
 ### Edge Function が 401 を返す
 
-- `Authorization: Bearer <service_role_key>` ヘッダーが正しいか確認
-- `service_role` key（`anon` key ではない）を使用しているか確認
+- `Authorization: Bearer <secret_key>` ヘッダーが正しいか確認
+- Secret key (`sb_secret_...`) を使用しているか確認（Publishable key ではない）
 
 ### Edge Function が CSV 取得に失敗する (404)
 
@@ -234,7 +238,7 @@ Secrets 設定後:
 
 - `SUPABASE_DB_HOST` が `db.<project-ref>.supabase.co` の形式か確認
 - `SUPABASE_DB_PASSWORD` がプロジェクト作成時のパスワードと一致するか確認
-- Supabase ダッシュボード → Settings → Database → Connection info で確認
+- Supabase ダッシュボード → Connect ダイアログで接続情報を確認
 
 ### Vercel でチャットが動作しない
 
