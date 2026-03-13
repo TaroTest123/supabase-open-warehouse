@@ -59,7 +59,33 @@ TEPCO は 2022年4月以降、年次 CSV の更新を停止し、月別 ZIP (`YY
 - **月次 cron**: `ingest-tepco.yml` に毎月3日の cron を追加し、前月分 ZIP を自動取り込み
 - **バックフィルワークフロー**: `backfill-tepco.yml` を新設。`workflow_dispatch` で指定期間の ZIP を一括取り込み
 
-ZIP 内 CSV は1時間行に `supply_capacity` / `usage_pct` を含むため、既存の年次 CSV で NULL だったカラムが UPSERT で補完される。
+### CSV 内の2セクション構造
+
+ZIP 内の各 CSV には2つのセクションが含まれる。それぞれ `DATE` ヘッダー行で区切られる:
+
+| セクション | ヘッダー判別 | カラム | 格納先テーブル |
+|-----------|------------|--------|--------------|
+| 1時間間隔 | `DATE` 行に `５分間隔` を**含まない** | date, time, demand, **forecast**, supply_capacity, usage_pct | `raw_tepco_demand` |
+| 5分間隔 | `DATE` 行に `５分間隔` を**含む** | date, time, demand, solar, solar_pct | `raw_tepco_demand_5min` |
+
+### カラムマッピングの違い
+
+日次 CSV と ZIP 1時間セクションではカラム構成が異なる:
+
+| ソース | カラム順 | `forecast_mw_str` |
+|-------|---------|-------------------|
+| 日次 CSV (5列) | date, time, demand, supply_capacity, usage_pct | NULL |
+| ZIP 1時間セクション (6列) | date, time, demand, **forecast**, supply_capacity, usage_pct | 値あり |
+
+ヘッダー行に `予測値` を含むかどうかでカラムマッピングを切り替える。
+
+### 2テーブルアプローチ
+
+1時間データと5分データは粒度・カラムが異なるため、別テーブル (`raw_tepco_demand` / `raw_tepco_demand_5min`) に格納する。これにより:
+
+- 既存の1時間データパイプライン（staging/mart）に影響を与えない
+- 5分データ用の staging/mart を独立して構築できる
+- UPSERT の UNIQUE 制約が粒度ごとに適切に機能する
 
 ## Migration Path
 

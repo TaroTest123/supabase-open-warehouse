@@ -5,7 +5,7 @@ sources:
     schema: public
     tables:
       - name: raw_tepco_demand
-        description: "TEPCO でんき予報 CSV の生データ"
+        description: "TEPCO でんき予報 CSV の生データ（1時間間隔）"
         columns:
           - name: id
             description: "サロゲートキー"
@@ -15,9 +15,29 @@ sources:
             description: "時刻文字列 (H:00 or H:30)"
           - name: demand_mw_str
             description: "需要実績 (万kW, TEXT)"
+          - name: forecast_mw_str
+            description: "予測値 (万kW, TEXT) — ZIP 1時間セクションのみ"
           - name: supply_capacity_mw_str
             description: "供給力 (万kW, TEXT)"
           - name: usage_pct_str
             description: "使用率 (%, TEXT)"
+          - name: loaded_at
+            description: "データ取り込み日時"
+
+      - name: raw_tepco_demand_5min
+        description: "TEPCO 月別 ZIP の5分間隔セクションの生データ"
+        columns:
+          - name: id
+            description: "サロゲートキー"
+          - name: date_str
+            description: "日付文字列 (YYYY/M/D)"
+          - name: time_str
+            description: "時刻文字列 (H:MM)"
+          - name: demand_mw_str
+            description: "需要実績 (万kW, TEXT)"
+          - name: solar_mw_str
+            description: "太陽光発電実績 (万kW, TEXT)"
+          - name: solar_pct_str
+            description: "太陽光発電割合 (%, TEXT)"
           - name: loaded_at
             description: "データ取り込み日時"

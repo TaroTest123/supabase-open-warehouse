@@ -34,7 +34,8 @@ supabase db push
 
 これにより以下が作成されます:
 
-- `raw_tepco_demand` テーブル（CSV 生データ格納）
+- `raw_tepco_demand` テーブル（CSV 生データ格納 — 1時間間隔、`forecast_mw_str` カラム含む）
+- `raw_tepco_demand_5min` テーブル（ZIP 5分間隔データ格納）
 - `readonly_user` ロール + `grant_readonly_on_mart_tables()` 関数
 - `ingestion_log` テーブル（取り込み履歴）
 
@@ -60,7 +61,8 @@ uv run dbt test --profiles-dir .
 
 ### 1.5 接続情報の確認
 
-ダッシュボード上部の **「Connect」ボタン** から API キーと DB 接続情報を確認できます。
+ダッシュボード上部の **「Connect」ボタン** から API キーと DB 接続情
+報を確認できます。
 また **Settings → API Keys** でも確認可能です。
 
 | 項目 | 確認場所 | 備考 |
@@ -96,11 +98,13 @@ curl -s -X POST "https://<project-ref>.supabase.co/functions/v1/ingest-tepco-csv
 
 > `<secret_key>` には `sb_secret_...` 形式の Secret key を使用します。
 
-成功時のレスポンス例:
+成功時のレスポンス例（日次 CSV）:
 
 ```json
 {
   "status": "success",
+  "hourly_rows": 48,
+  "five_min_rows": 0,
   "rows_fetched": 48,
   "rows_upserted": 48,
   "url": "https://www.tepco.co.jp/forecast/html/images/juyo-d-j.csv"
@@ -254,7 +258,7 @@ Secrets 設定後:
 
 ## 5. デプロイ後のチェックリスト
 
-- [ ] Supabase マイグレーションが適用されている (`raw_tepco_demand`, `ingestion_log` テーブルが存在)
+- [ ] Supabase マイグレーションが適用されている (`raw_tepco_demand`, `raw_tepco_demand_5min`, `ingestion_log` テーブルが存在)
 - [ ] `readonly_user` ロールが作成され、mart テーブルに SELECT 権限がある
 - [ ] Edge Function `ingest-tepco-csv` がデプロイされ、curl で動作確認済み
 - [ ] Vercel にフロントエンドがデプロイされ、チャット UI にアクセス可能
