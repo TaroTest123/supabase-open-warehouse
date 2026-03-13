@@ -159,6 +159,7 @@ npx @liam-hq/cli erd build --format tbls \
 - 既存の ADR:
   - [0001-hosting-vercel.md](docs/adr/0001-hosting-vercel.md) — Vercel をホスティングに採用
   - [0002-tepco-csv-ingestion.md](docs/adr/0002-tepco-csv-ingestion.md) — TEPCO CSV 自動取り込みに Edge Function + GitHub Actions cron を採用
+  - [0003-ci-postgres-service-container.md](docs/adr/0003-ci-postgres-service-container.md) — CI の dbt ジョブで PostgreSQL サービスコンテナを採用
 
 ## ワークフロー
 

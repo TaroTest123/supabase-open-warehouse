@@ -196,10 +196,10 @@ GitHub リポジトリ → **Settings** → **Secrets and variables** → **Acti
 
 | ワークフロー | 使用する Secrets | トリガー |
 |-------------|-----------------|---------|
-| `ci.yml` | なし（ローカル Supabase を使用） | PR / main push |
+| `ci.yml` | なし（PostgreSQL サービスコンテナを使用） | PR / main push |
 | `deploy-functions.yml` | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` | main push (`supabase/functions/**` 変更時) / 手動 |
 | `ingest-tepco.yml` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_*` | 毎日 00:00 JST / 手動 |
-| `docs.yml` | なし（ローカル Supabase を使用） | main push |
+| `docs.yml` | なし（PostgreSQL サービスコンテナを使用） | main push |
 
 ### 動作確認
 

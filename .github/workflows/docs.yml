@@ -17,6 +17,23 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PGPASSWORD: postgres
+      DBT_HOST: localhost
+      DBT_PORT: "5432"
+    services:
+      postgres:
+        image: supabase/postgres:15.6.1.143
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -29,22 +46,21 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51 # v1.6.0
-        with:
-          version: latest
-
       - name: Setup tbls
         uses: k1low/setup-tbls@f25e3d013a596865b2db90dac7ee19e9f15b5780 # v1
 
       - name: Install pandoc
         run: sudo apt-get install -y --no-install-recommends pandoc
 
-      - name: Start Supabase
-        run: supabase start
-
-      - name: Reset database (apply migrations + seed)
-        run: supabase db reset
+      - name: Apply migrations & seed
+        run: |
+          set -e
+          for f in supabase/migrations/*.sql; do
+            echo "Applying $f ..."
+            psql -h localhost -U postgres -d postgres -f "$f"
+          done
+          echo "Applying seed data ..."
+          psql -h localhost -U postgres -d postgres -f supabase/seed.sql
 
       - name: Install dbt dependencies
         working-directory: dbt
@@ -56,7 +72,7 @@ jobs:
 
       # --- tbls ---
       - name: Generate tbls docs
-        run: tbls doc
+        run: tbls doc --dsn "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
       - name: Convert tbls Markdown to HTML
         run: |
@@ -129,10 +145,6 @@ jobs:
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
-
-      - name: Stop Supabase
-        if: always()
-        run: supabase stop
 
   deploy:
     runs-on: ubuntu-latest
