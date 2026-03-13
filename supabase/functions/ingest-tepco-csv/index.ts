@@ -1,7 +1,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const DEFAULT_CSV_URL =
-  "https://www.tepco.co.jp/forecast/html/images/juyo-d-j.csv";
+  "https://www.tepco.co.jp/forecast/html/images/juyo-d1-j.csv";
 const BATCH_SIZE = 1000;
 
 type IngestionStatus = "success" | "error" | "partial";
