@@ -2,8 +2,10 @@ name: Ingest TEPCO CSV
 
 on:
   schedule:
-    # 毎日 00:00 JST (15:00 UTC)
+    # 毎日 00:00 JST (15:00 UTC) — 当日実績 CSV
     - cron: "0 15 * * *"
+    # 毎月3日 03:00 JST (18:00 UTC) — 前月分 ZIP
+    - cron: "0 18 3 * *"
   workflow_dispatch:
     inputs:
       csv_url:
@@ -17,12 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     steps:
+      - name: Determine URL
+        id: url
+        run: |
+          if [ -n "${{ inputs.csv_url }}" ]; then
+            echo "target_url=${{ inputs.csv_url }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 18 3 * *" ]; then
+            # 前月の YYYYMM を計算
+            PREV_MONTH=$(date -u -d "$(date -u +%Y-%m-01) -1 month" +%Y%m)
+            echo "target_url=https://www.tepco.co.jp/forecast/html/images/${PREV_MONTH}_power_usage.zip" >> "$GITHUB_OUTPUT"
+          else
+            echo "target_url=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Call ingest Edge Function
         id: ingest
         run: |
           URL="${{ secrets.SUPABASE_URL }}/functions/v1/ingest-tepco-csv"
-          if [ -n "${{ inputs.csv_url }}" ]; then
-            URL="${URL}?url=${{ inputs.csv_url }}"
+          if [ -n "${{ steps.url.outputs.target_url }}" ]; then
+            URL="${URL}?url=${{ steps.url.outputs.target_url }}"
           fi
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
