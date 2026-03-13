@@ -1,4 +1,7 @@
--- usage_pct は 0〜100 の範囲内であること（NULL は年次 CSV で発生するため除外）
+-- usage_pct の範囲チェック（NULL は年次 CSV で発生するため除外）
+-- TEPCO の使用率は供給力対比のため 100% 超もありうる
+-- config: severity warn
+{{ config(severity='warn') }}
 select
     demand_date,
     demand_time,
