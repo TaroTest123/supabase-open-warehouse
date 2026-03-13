@@ -178,9 +178,22 @@ vercel --prod
 
 日次 CSV 取り込みワークフロー (`ingest-tepco.yml`) と CI で使用する secrets を設定します。
 
-GitHub リポジトリ → **Settings** → **Secrets and variables** → **Actions** で以下を追加:
+### 4.1 GitHub Environments の作成
 
-### 必須 Secrets
+本番 Secrets は **GitHub Environment** にスコープすることで、PR ワークフローからの意図しないアクセスを防ぎます。
+
+GitHub リポジトリ → **Settings** → **Environments** で以下の 2 環境を作成:
+
+| 環境 | 用途 | 推奨の保護ルール |
+|------|------|-----------------|
+| `production` | 本番 Supabase への接続・デプロイ | Deployment branch: `main` のみ |
+| `preview` | プレビュー環境（将来用） | 制限なし |
+
+### 4.2 Secrets の設定
+
+本番 Secrets は `production` 環境に設定します。
+
+**Settings** → **Environments** → **production** → **Environment secrets** で以下を追加:
 
 | Secret | 用途 | 値の取得元 |
 |--------|------|-----------|
@@ -192,14 +205,16 @@ GitHub リポジトリ → **Settings** → **Secrets and variables** → **Acti
 | `SUPABASE_DB_USER` | dbt DB ユーザー | `postgres` |
 | `SUPABASE_DB_PASSWORD` | dbt DB パスワード | プロジェクト作成時のパスワード |
 
-### 使用するワークフロー
+> **注意**: 既存のリポジトリレベル Secrets から `production` 環境に移行する場合は、リポジトリレベルの同名 Secrets を削除してください（環境 Secrets が優先されますが、混乱を避けるため）。
 
-| ワークフロー | 使用する Secrets | トリガー |
-|-------------|-----------------|---------|
-| `ci.yml` | なし（PostgreSQL サービスコンテナを使用） | PR / main push |
-| `deploy-functions.yml` | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` | main push (`supabase/functions/**` 変更時) / 手動 |
-| `ingest-tepco.yml` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_*` | 毎日 00:00 JST / 手動 |
-| `docs.yml` | なし（PostgreSQL サービスコンテナを使用） | main push |
+### 4.3 使用するワークフロー
+
+| ワークフロー | Environment | 使用する Secrets | トリガー |
+|-------------|-------------|-----------------|---------|
+| `ci.yml` | なし | なし（PostgreSQL サービスコンテナを使用） | PR / main push |
+| `deploy-functions.yml` | `production` / `preview` | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` | main push・PR (`supabase/functions/**` 変更時) / 手動 |
+| `ingest-tepco.yml` | `production` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_*` | 毎日 00:00 JST / 手動 |
+| `docs.yml` | なし | なし（PostgreSQL サービスコンテナを使用） | main push |
 
 ### 動作確認
 
