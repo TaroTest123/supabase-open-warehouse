@@ -151,6 +151,10 @@ npx @liam-hq/cli erd build --format tbls \
 - ファイル命名: `NNNN-<slug>.md`（例: `0001-hosting-vercel.md`）
 - 既存の ADR: [0001-hosting-vercel.md](docs/adr/0001-hosting-vercel.md) — Vercel をホスティングに採用
 
+## ワークフロー
+
+- **PR 作成前に `/simplify` を実行する** — コミット後・PR 作成前に必ず `/simplify` でコード品質・効率・再利用性をレビューし、問題があれば修正してから PR を出す
+
 ## セキュリティルール
 
 - **SQL インジェクション防止**: AI 生成 SQL はパラメータ化クエリで実行しない（SQL 自体を生成するため）。代わりに READ ONLY ロール + `statement_timeout` で制御
