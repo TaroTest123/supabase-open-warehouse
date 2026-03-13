@@ -62,3 +62,28 @@ models:
         description: "レコード数"
       - name: days_with_data
         description: "データのある日数"
+
+  - name: mart_daily_solar
+    description: "日次太陽光発電サマリ（5分間隔データから集計）"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: max_solar_mw
+        description: "日次最大太陽光発電 (MW)"
+      - name: min_solar_mw
+        description: "日次最小太陽光発電 (MW)"
+      - name: avg_solar_mw
+        description: "日次平均太陽光発電 (MW)"
+      - name: total_solar_mwh
+        description: "日次太陽光発電量 (MWh, 5分×件数から概算)"
+      - name: max_solar_pct
+        description: "日次最大太陽光割合 (%)"
+      - name: avg_solar_pct
+        description: "日次平均太陽光割合 (%)"
+      - name: avg_demand_mw
+        description: "日次平均需要 (MW)"
+      - name: record_count
+        description: "レコード数"

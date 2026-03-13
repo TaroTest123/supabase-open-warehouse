@@ -119,9 +119,35 @@ SUPABASE_READONLY_DB_URL=postgresql://readonly_user:<パスワード>@<ホスト
 
 3. **接続 URL を組み立てる**
 
+   Supabase は現在 **Connection Pooler（Supavisor）** 経由の接続がデフォルトです。
+   Direct connection（`db.<project-ref>.supabase.co`）は IPv6 のみに解決される場合があり、
+   Vercel Functions や GitHub Actions から接続できないことがあります。
+
+   ダッシュボード → **Connect** ボタン → **Connection Pooler** → **Session mode** の接続情報を参照してください。
+
+   **Pooler 経由（推奨）**:
+
    ```
-   postgresql://readonly_user:<パスワード>@db.xxxxxxxxxxxx.supabase.co:5432/postgres
+   postgresql://readonly_user.<project-ref>:<パスワード>@<pooler-host>:5432/postgres
    ```
+
+   例:
+
+   ```
+   postgresql://readonly_user.qtzdbzaepmvynhkaagrk:mypassword@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres
+   ```
+
+   > **重要**: Pooler 経由の場合、ユーザー名は `readonly_user.<project-ref>` の形式になります。
+   > `<pooler-host>` はリージョンによって異なります（例: `aws-0-ap-northeast-1.pooler.supabase.com`）。
+   > ポートは Session mode = `5432`、Transaction mode = `6543` です。
+
+   **Direct connection（非推奨）**:
+
+   ```
+   postgresql://readonly_user:<パスワード>@db.<project-ref>.supabase.co:5432/postgres
+   ```
+
+   > Direct connection は IPv6 環境でのみ動作する場合があります。特別な理由がない限り Pooler を使用してください。
 
 
 
@@ -152,6 +178,14 @@ GRANT SELECT ON public.mart_新テーブル名 TO readonly_user;
 ```
 
 ## トラブルシューティング
+
+### DNS エラー: `getaddrinfo ENOTFOUND db.<project-ref>.supabase.co`
+
+- Direct connection のホスト名（`db.<project-ref>.supabase.co`）を使用している可能性があります
+- **Connection Pooler** のホスト名に変更してください（例: `aws-0-ap-northeast-1.pooler.supabase.com`）
+- ユーザー名も `readonly_user.<project-ref>` の Pooler 形式に更新が必要です
+- Vercel の環境変数に改行が含まれていないか確認してください（コピペ時に混入しやすい）
+- Supabase プロジェクトが pause されていないか確認してください（無料プランは一定期間未使用で自動 pause）
 
 ### 接続エラー: `password authentication failed for user "readonly_user"`
 
