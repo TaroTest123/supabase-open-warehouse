@@ -51,23 +51,39 @@ jobs:
   dbt:
     name: dbt (test)
     runs-on: ubuntu-latest
+    env:
+      PGPASSWORD: postgres
+      DBT_HOST: localhost
+      DBT_PORT: "5432"
+    services:
+      postgres:
+        image: supabase/postgres:15.6.1.143
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Apply migrations & seed
+        run: |
+          set -e
+          for f in supabase/migrations/*.sql; do
+            echo "Applying $f ..."
+            psql -h localhost -U postgres -d postgres -f "$f"
+          done
+          echo "Applying seed data ..."
+          psql -h localhost -U postgres -d postgres -f supabase/seed.sql
+
       - name: Setup uv
         uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
-
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51 # v1.6.0
-        with:
-          version: latest
-
-      - name: Start Supabase
-        run: supabase start
-
-      - name: Reset database (migrations + seed)
-        run: supabase db reset
 
       - name: Install dbt dependencies
         working-directory: dbt
@@ -80,7 +96,3 @@ jobs:
       - name: Run dbt tests
         working-directory: dbt
         run: uv run dbt test --profiles-dir .
-
-      - name: Stop Supabase
-        if: always()
-        run: supabase stop

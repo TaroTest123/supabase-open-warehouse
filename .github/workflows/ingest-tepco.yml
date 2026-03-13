@@ -15,6 +15,7 @@ jobs:
   ingest:
     name: Fetch & upsert CSV
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Call ingest Edge Function
         id: ingest
@@ -40,6 +41,7 @@ jobs:
     name: dbt run & grant permissions
     needs: ingest
     runs-on: ubuntu-latest
+    environment: production
     env:
       DBT_HOST: ${{ secrets.SUPABASE_DB_HOST }}
       DBT_PORT: "5432"
