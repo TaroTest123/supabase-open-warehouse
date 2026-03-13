@@ -51,7 +51,16 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const sqlQuery = await generateSQL(message);
+		const result = await generateSQL(message);
+
+		if ("text" in result) {
+			const response: ChatResponse = {
+				content: result.text,
+			};
+			return NextResponse.json(response);
+		}
+
+		const sqlQuery = result.sql;
 		validateSQL(sqlQuery);
 
 		const readonlySql = postgres(dbUrl);

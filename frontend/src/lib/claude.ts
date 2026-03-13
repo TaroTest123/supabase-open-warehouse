@@ -3,7 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic();
 
-export async function generateSQL(question: string): Promise<string> {
+export async function generateSQL(
+	question: string,
+): Promise<{ sql: string } | { text: string }> {
 	const response = await anthropic.messages.create({
 		model: "claude-sonnet-4-20250514",
 		max_tokens: 1024,
@@ -16,10 +18,15 @@ export async function generateSQL(question: string): Promise<string> {
 
 	const sqlMatch = text.match(/```sql\s*([\s\S]*?)```/);
 	if (sqlMatch) {
-		return sqlMatch[1].trim();
+		return { sql: sqlMatch[1].trim() };
 	}
 
-	return text.trim();
+	const trimmed = text.trim().toUpperCase();
+	if (trimmed.startsWith("SELECT") || trimmed.startsWith("WITH")) {
+		return { sql: text.trim() };
+	}
+
+	return { text: text.trim() };
 }
 
 export async function summarizeResults(
