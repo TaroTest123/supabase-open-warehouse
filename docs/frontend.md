@@ -17,7 +17,7 @@ Next.js 15 (App Router) + shadcn/ui によるチャット UI。
 ## コンポーネント構成
 
 ```
-src/
+frontend/src/
 ├── app/
 │   ├── layout.tsx          # ルートレイアウト（Inter フォント、メタデータ）
 │   ├── page.tsx            # ホームページ → ChatContainer 描画
@@ -26,10 +26,11 @@ src/
 │       └── route.ts        # チャット API エンドポイント
 ├── components/
 │   ├── ui/                 # shadcn/ui コンポーネント（CLI 生成）
-│   ├── chat-container.tsx  # チャット全体の状態管理
-│   ├── chat-message.tsx    # メッセージバブル表示
-│   ├── chat-input.tsx      # 入力フォーム
-│   └── data-table.tsx      # SQL 結果テーブル表示
+│   └── chat/               # チャット機能コンポーネント
+│       ├── chat-container.tsx  # チャット全体の状態管理
+│       ├── chat-message.tsx    # メッセージバブル表示
+│       ├── chat-input.tsx      # 入力フォーム
+│       └── data-table.tsx      # SQL 結果テーブル表示
 ├── lib/
 │   ├── utils.ts            # cn() ユーティリティ
 │   ├── supabase/server.ts  # Supabase サーバークライアント
@@ -120,14 +121,15 @@ ChatMessage + DataTable で表示
 ### shadcn/ui コンポーネント追加
 
 ```bash
-pnpm dlx shadcn@latest add [component-name]
+cd frontend && pnpm dlx shadcn@latest add [component-name]
 ```
 
-`src/components/ui/` に生成される。このディレクトリは Biome の lint 対象外。
+`frontend/src/components/ui/` に生成される。このディレクトリは Biome の lint 対象外。
 
 ### Biome (Linter/Formatter)
 
 ```bash
+cd frontend
 pnpm check        # チェックのみ
 pnpm check:fix    # 自動修正
 ```

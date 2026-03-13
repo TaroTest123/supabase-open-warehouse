@@ -13,8 +13,10 @@ echo "=== Installing Supabase CLI ==="
 curl -sSL https://raw.githubusercontent.com/supabase/cli/main/install.sh | bash
 
 echo "=== Installing frontend dependencies ==="
-if [ -f "package.json" ]; then
+if [ -f "frontend/package.json" ]; then
+  cd frontend
   pnpm install
+  cd ..
 fi
 
 echo "=== Setting up dbt environment ==="

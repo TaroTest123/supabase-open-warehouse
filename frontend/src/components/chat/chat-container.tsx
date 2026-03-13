@@ -1,7 +1,7 @@
 "use client";
 
-import { ChatInput } from "@/components/chat-input";
-import { ChatMessage } from "@/components/chat-message";
+import { ChatInput } from "@/components/chat/chat-input";
+import { ChatMessage } from "@/components/chat/chat-message";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -1,4 +1,4 @@
-import { DataTable } from "@/components/data-table";
+import { DataTable } from "@/components/chat/data-table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";

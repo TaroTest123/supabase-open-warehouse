@@ -76,11 +76,11 @@ git clone https://github.com/your-org/supabase-open-warehouse.git
 cd supabase-open-warehouse
 
 # 2. 環境変数の設定
-cp .env.local.example .env.local
-# .env.local を編集して API キーを設定
+cp .env.local.example frontend/.env.local
+# frontend/.env.local を編集して API キーを設定
 
 # 3. フロントエンド依存のインストール
-pnpm install
+cd frontend && pnpm install && cd ..
 
 # 4. Supabase ローカル環境の起動
 supabase start
@@ -95,7 +95,7 @@ uv run dbt run
 cd ..
 
 # 7. 開発サーバーの起動
-pnpm dev
+cd frontend && pnpm dev
 ```
 
 開発サーバーが起動したら http://localhost:3000 にアクセスしてください。
@@ -104,11 +104,17 @@ pnpm dev
 
 ```
 supabase-open-warehouse/
-├── src/                        # Next.js アプリケーション
-│   ├── app/                    #   App Router ページ・レイアウト
-│   ├── components/             #   React コンポーネント
-│   ├── lib/                    #   ユーティリティ・API クライアント
-│   └── types/                  #   TypeScript 型定義（DB 型含む）
+├── frontend/                   # Next.js アプリケーション
+│   ├── src/
+│   │   ├── app/                #   App Router ページ・レイアウト
+│   │   ├── components/         #   React コンポーネント
+│   │   │   ├── chat/           #     チャット機能コンポーネント
+│   │   │   └── ui/             #     共通 UI (shadcn/ui)
+│   │   ├── lib/                #   ユーティリティ・API クライアント
+│   │   └── types/              #   TypeScript 型定義（DB 型含む）
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── next.config.ts
 ├── supabase/                   # Supabase プロジェクト設定
 │   ├── migrations/             #   SQL マイグレーション
 │   ├── functions/              #   Edge Functions
@@ -118,8 +124,10 @@ supabase-open-warehouse/
 │   ├── tests/                  #   データテスト
 │   └── dbt_project.yml         #   dbt 設定
 ├── docs/                       # ドキュメント
+│   ├── adr/                    #   Architecture Decision Records
 │   ├── architecture.md         #   アーキテクチャ詳細
-│   └── data-sources.md         #   データソース仕様
+│   ├── data-sources.md         #   データソース仕様
+│   └── frontend.md             #   フロントエンド設計
 ├── .devcontainer/              # Dev Container 設定
 │   ├── devcontainer.json       #   コンテナ・拡張機能定義
 │   └── post-create.sh          #   セットアップスクリプト
@@ -182,15 +190,16 @@ claude
 ### shadcn/ui コンポーネント追加
 
 ```bash
-pnpm dlx shadcn@latest add [component-name]
+cd frontend && pnpm dlx shadcn@latest add [component-name]
 ```
 
-コンポーネントは `src/components/ui/` に生成されます。
+コンポーネントは `frontend/src/components/ui/` に生成されます。
 このディレクトリは Biome の lint 対象外です。
 
 ### 開発ワークフロー
 
 ```bash
+cd frontend
 pnpm dev          # 開発サーバー起動 (http://localhost:3000)
 pnpm build        # プロダクションビルド
 pnpm check        # Biome lint + format チェック

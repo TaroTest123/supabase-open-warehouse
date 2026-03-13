@@ -15,12 +15,12 @@
   },
   "files": {
     "ignore": [
-      ".next",
-      "node_modules",
+      "frontend/.next",
+      "frontend/node_modules",
       "dbt",
       "supabase",
       "docs-generated",
-      "src/components/ui"
+      "frontend/src/components/ui"
     ]
   }
 }
