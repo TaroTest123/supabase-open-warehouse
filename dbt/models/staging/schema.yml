@@ -19,12 +19,14 @@ models:
         tests:
           - not_null
       - name: supply_capacity_mw
-        description: "供給力 (MW)"
+        description: "供給力 (MW)。年次 CSV には含まれないため NULL の場合あり"
         tests:
-          - not_null
+          - not_null:
+              severity: warn
       - name: usage_pct
-        description: "使用率 (%)"
+        description: "使用率 (%)。年次 CSV には含まれないため NULL の場合あり"
         tests:
-          - not_null
+          - not_null:
+              severity: warn
       - name: loaded_at
         description: "データ取り込み日時"
