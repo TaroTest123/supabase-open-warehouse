@@ -44,7 +44,7 @@ jobs:
     environment: production
     env:
       DBT_HOST: ${{ secrets.SUPABASE_DB_HOST }}
-      DBT_PORT: "5432"
+      DBT_PORT: ${{ secrets.SUPABASE_DB_PORT }}
       DBT_USER: ${{ secrets.SUPABASE_DB_USER }}
       DBT_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       DBT_DBNAME: "postgres"
@@ -72,7 +72,7 @@ jobs:
       - name: Grant readonly permissions on mart tables
         env:
           PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
-          PGPORT: "5432"
+          PGPORT: ${{ secrets.SUPABASE_DB_PORT }}
           PGUSER: ${{ secrets.SUPABASE_DB_USER }}
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           PGDATABASE: "postgres"
