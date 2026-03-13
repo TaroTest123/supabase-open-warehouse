@@ -21,12 +21,13 @@ export async function generateSQL(
 		return { sql: sqlMatch[1].trim() };
 	}
 
-	const trimmed = text.trim().toUpperCase();
-	if (trimmed.startsWith("SELECT") || trimmed.startsWith("WITH")) {
-		return { sql: text.trim() };
+	const trimmedText = text.trim();
+	const upper = trimmedText.toUpperCase();
+	if (upper.startsWith("SELECT") || upper.startsWith("WITH")) {
+		return { sql: trimmedText };
 	}
 
-	return { text: text.trim() };
+	return { text: trimmedText };
 }
 
 export async function summarizeResults(
