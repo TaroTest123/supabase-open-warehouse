@@ -186,6 +186,8 @@ GitHub リポジトリ → **Settings** → **Secrets and variables** → **Acti
 |--------|------|-----------|
 | `SUPABASE_URL` | Edge Function 呼び出し URL | Supabase → Settings → API → Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Edge Function 認証 | Supabase → Settings → API → `service_role` key |
+| `SUPABASE_ACCESS_TOKEN` | Supabase CLI 認証（Edge Function デプロイ） | [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) で生成 |
+| `SUPABASE_PROJECT_REF` | Supabase プロジェクト参照 ID | Supabase → Settings → General → Reference ID |
 | `SUPABASE_DB_HOST` | dbt から DB に接続 | `db.<project-ref>.supabase.co` |
 | `SUPABASE_DB_USER` | dbt DB ユーザー | `postgres` |
 | `SUPABASE_DB_PASSWORD` | dbt DB パスワード | プロジェクト作成時のパスワード |
@@ -195,15 +197,18 @@ GitHub リポジトリ → **Settings** → **Secrets and variables** → **Acti
 | ワークフロー | 使用する Secrets | トリガー |
 |-------------|-----------------|---------|
 | `ci.yml` | なし（ローカル Supabase を使用） | PR / main push |
-| `ingest-tepco.yml` | 全 5 つ | 毎日 00:00 JST / 手動 |
+| `deploy-functions.yml` | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` | main push (`supabase/functions/**` 変更時) / 手動 |
+| `ingest-tepco.yml` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_*` | 毎日 00:00 JST / 手動 |
 | `docs.yml` | なし（ローカル Supabase を使用） | main push |
 
 ### 動作確認
 
-Secrets 設定後、GitHub Actions → `Ingest TEPCO CSV` → **Run workflow** で手動実行して確認:
+Secrets 設定後:
 
-1. **ingest** ジョブ: Edge Function を呼び出し、CSV を取り込み
-2. **dbt-refresh** ジョブ: dbt run → dbt test → `grant_readonly_on_mart_tables()` 実行
+1. **Edge Function デプロイ**: GitHub Actions → `Deploy Edge Functions` → **Run workflow** で手動実行
+2. **日次取り込み**: GitHub Actions → `Ingest TEPCO CSV` → **Run workflow** で手動実行
+   - **ingest** ジョブ: Edge Function を呼び出し、CSV を取り込み
+   - **dbt-refresh** ジョブ: dbt run → dbt test → `grant_readonly_on_mart_tables()` 実行
 
 ---
 
