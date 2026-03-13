@@ -64,6 +64,7 @@ supabase-open-warehouse/
 ├── .devcontainer/          # Dev Container 設定
 ├── .github/workflows/      # GitHub Actions CI/CD
 ├── docs/                   # ドキュメント
+│   ├── deployment.md       # デプロイガイド（Supabase / Vercel / GitHub Actions）
 │   └── adr/                # Architecture Decision Records
 ├── biome.json              # Biome (linter/formatter) 設定
 ├── CLAUDE.md               # このファイル
