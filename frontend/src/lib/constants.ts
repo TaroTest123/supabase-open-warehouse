@@ -30,9 +30,22 @@ export const MART_TABLE_SCHEMAS = `
 | avg_usage_pct | NUMERIC | 月次平均使用率 (%) |
 | record_count | BIGINT | レコード数 |
 | days_with_data | BIGINT | データのある日数 |
+
+## mart_daily_solar — 日次太陽光発電サマリ（5分間隔データから集計）
+| カラム名 | 型 | 説明 |
+|---------|------|------|
+| demand_date | DATE | 需要日 |
+| max_solar_mw | NUMERIC | 日次最大太陽光発電 (MW) |
+| min_solar_mw | NUMERIC | 日次最小太陽光発電 (MW) |
+| avg_solar_mw | NUMERIC | 日次平均太陽光発電 (MW) |
+| total_solar_mwh | NUMERIC | 日次太陽光発電量 (MWh, 5分×件数から概算) |
+| max_solar_pct | NUMERIC | 日次最大太陽光割合 (%) |
+| avg_solar_pct | NUMERIC | 日次平均太陽光割合 (%) |
+| avg_demand_mw | NUMERIC | 日次平均需要 (MW) |
+| record_count | BIGINT | レコード数 |
 `;
 
-export const SQL_GENERATION_PROMPT = `あなたは東京電力（TEPCO）の電力需要データの分析アシスタントです。
+export const SQL_GENERATION_PROMPT = `あなたは東京電力（TEPCO）の電力需要・太陽光発電データの分析アシスタントです。
 ユーザーの質問に対して、適切な SQL クエリを生成してください。
 
 ## 利用可能なテーブル
