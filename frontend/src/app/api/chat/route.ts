@@ -3,6 +3,23 @@ import type { ChatResponse } from "@/types/chat";
 import { type NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 
+const FORBIDDEN_PATTERNS = [
+	"INSERT",
+	"UPDATE",
+	"DELETE",
+	"DROP",
+	"ALTER",
+	"CREATE",
+	"TRUNCATE",
+	"GRANT",
+	"REVOKE",
+	"EXEC",
+	"EXECUTE",
+].map((keyword) => ({
+	keyword,
+	pattern: new RegExp(`\\b${keyword}\\b`, "i"),
+}));
+
 function validateSQL(sql: string): void {
 	const normalized = sql.trim().toUpperCase();
 
@@ -10,25 +27,47 @@ function validateSQL(sql: string): void {
 		throw new Error("SELECT または WITH で始まるクエリのみ許可されています");
 	}
 
-	const forbidden = [
-		"INSERT",
-		"UPDATE",
-		"DELETE",
-		"DROP",
-		"ALTER",
-		"CREATE",
-		"TRUNCATE",
-		"GRANT",
-		"REVOKE",
-		"EXEC",
-		"EXECUTE",
-	];
-	for (const keyword of forbidden) {
-		const pattern = new RegExp(`\\b${keyword}\\b`, "i");
+	for (const { keyword, pattern } of FORBIDDEN_PATTERNS) {
 		if (pattern.test(sql)) {
 			throw new Error(`禁止キーワード "${keyword}" が含まれています`);
 		}
 	}
+
+	const BLOCKED_SCHEMAS = [
+		"pg_catalog",
+		"information_schema",
+		"pg_tables",
+		"pg_roles",
+		"pg_stat",
+	];
+	for (const schema of BLOCKED_SCHEMAS) {
+		if (normalized.includes(schema.toUpperCase())) {
+			throw new Error("システムテーブルへのアクセスは許可されていません");
+		}
+	}
+}
+
+const MAX_RESULT_ROWS = 100;
+
+function getReadonlyPool() {
+	const dbUrl = process.env.SUPABASE_READONLY_DB_URL;
+	if (!dbUrl) {
+		throw new Error("SUPABASE_READONLY_DB_URL が設定されていません");
+	}
+	return postgres(dbUrl, {
+		max: 5,
+		idle_timeout: 20,
+		connection: { statement_timeout: 10000 },
+	});
+}
+
+let readonlyPool: ReturnType<typeof postgres> | null = null;
+
+function getPool() {
+	if (!readonlyPool) {
+		readonlyPool = getReadonlyPool();
+	}
+	return readonlyPool;
 }
 
 export async function POST(request: NextRequest) {
@@ -43,39 +82,57 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const dbUrl = process.env.SUPABASE_READONLY_DB_URL;
-		if (!dbUrl) {
+		if (message.length > 1000) {
 			return NextResponse.json(
-				{ error: "SUPABASE_READONLY_DB_URL が設定されていません" },
-				{ status: 500 },
+				{ error: "メッセージは1000文字以内で入力してください" },
+				{ status: 400 },
 			);
 		}
 
-		const sqlQuery = await generateSQL(message);
+		const result = await generateSQL(message);
+
+		if ("text" in result) {
+			const response: ChatResponse = {
+				content: result.text,
+			};
+			return NextResponse.json(response);
+		}
+
+		const sqlQuery = result.sql;
 		validateSQL(sqlQuery);
 
-		const readonlySql = postgres(dbUrl);
+		const sql = getPool();
+		const sqlResults = await sql.unsafe(sqlQuery);
+		const rows = (sqlResults as unknown as Record<string, unknown>[]).slice(
+			0,
+			MAX_RESULT_ROWS,
+		);
 
-		try {
-			await readonlySql.unsafe("SET statement_timeout = '10s'");
-			const sqlResults = await readonlySql.unsafe(sqlQuery);
-			const rows = sqlResults as unknown as Record<string, unknown>[];
+		const content = await summarizeResults(message, sqlQuery, rows);
 
-			const content = await summarizeResults(message, sqlQuery, rows);
+		const response: ChatResponse = {
+			content,
+			sqlQuery,
+			sqlResults: rows,
+		};
 
-			const response: ChatResponse = {
-				content,
-				sqlQuery,
-				sqlResults: rows,
-			};
-
-			return NextResponse.json(response);
-		} finally {
-			await readonlySql.end();
-		}
+		return NextResponse.json(response);
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "不明なエラーが発生しました";
-		return NextResponse.json({ error: errorMessage }, { status: 500 });
+		console.error("[chat/route] Error:", error);
+
+		let userMessage =
+			"サーバーエラーが発生しました。しばらく経ってからお試しください。";
+		if (error instanceof Error) {
+			if (
+				error.message.includes("禁止キーワード") ||
+				error.message.includes("のみ許可されています")
+			) {
+				userMessage = error.message;
+			} else if (error.message.includes("SUPABASE_READONLY_DB_URL")) {
+				userMessage = "データベースの設定が完了していません。";
+			}
+		}
+
+		return NextResponse.json({ error: userMessage }, { status: 500 });
 	}
 }
