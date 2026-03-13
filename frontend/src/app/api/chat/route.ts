@@ -33,7 +33,13 @@ function validateSQL(sql: string): void {
 		}
 	}
 
-	const BLOCKED_SCHEMAS = ["pg_catalog", "information_schema", "pg_tables", "pg_roles", "pg_stat"];
+	const BLOCKED_SCHEMAS = [
+		"pg_catalog",
+		"information_schema",
+		"pg_tables",
+		"pg_roles",
+		"pg_stat",
+	];
 	for (const schema of BLOCKED_SCHEMAS) {
 		if (normalized.includes(schema.toUpperCase())) {
 			throw new Error("システムテーブルへのアクセスは許可されていません");
@@ -114,7 +120,8 @@ export async function POST(request: NextRequest) {
 	} catch (error) {
 		console.error("[chat/route] Error:", error);
 
-		let userMessage = "サーバーエラーが発生しました。しばらく経ってからお試しください。";
+		let userMessage =
+			"サーバーエラーが発生しました。しばらく経ってからお試しください。";
 		if (error instanceof Error) {
 			if (
 				error.message.includes("禁止キーワード") ||
