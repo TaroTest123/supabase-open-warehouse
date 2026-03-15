@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { useMemo } from "react";
 import {
 	CartesianGrid,
 	Legend,
@@ -30,6 +31,8 @@ const DATE_COLUMN_NAMES = new Set([
 	"year_month",
 ]);
 
+const EXCLUDED_COLUMNS = new Set(["record_count", "forecast_count"]);
+
 interface DataChartProps {
 	rows: Record<string, unknown>[];
 }
@@ -51,8 +54,7 @@ function detectColumns(rows: Record<string, unknown>[]) {
 	const numericColumns = keys.filter(
 		(k) =>
 			k !== xColumn &&
-			k !== "record_count" &&
-			k !== "forecast_count" &&
+			!EXCLUDED_COLUMNS.has(k) &&
 			rows.some((r) => r[k] != null && isNumeric(r[k])),
 	);
 
@@ -67,22 +69,30 @@ function formatXLabel(value: string): string {
 }
 
 export function DataChart({ rows }: DataChartProps) {
-	if (rows.length < 2) return null;
+	const chartData = useMemo(() => {
+		if (rows.length < 2) return null;
 
-	const { xColumn, numericColumns } = detectColumns(rows);
-	if (numericColumns.length === 0) return null;
+		const { xColumn, numericColumns } = detectColumns(rows);
+		if (numericColumns.length === 0) return null;
 
-	const displayColumns = numericColumns.slice(0, 6);
+		const displayColumns = numericColumns.slice(0, 6);
 
-	const data = rows.map((row) => {
-		const point: Record<string, unknown> = {
-			[xColumn]: String(row[xColumn] ?? ""),
-		};
-		for (const col of displayColumns) {
-			point[col] = row[col] != null ? Number(row[col]) : null;
-		}
-		return point;
-	});
+		const data = rows.map((row) => {
+			const point: Record<string, unknown> = {
+				[xColumn]: String(row[xColumn] ?? ""),
+			};
+			for (const col of displayColumns) {
+				point[col] = row[col] != null ? Number(row[col]) : null;
+			}
+			return point;
+		});
+
+		return { xColumn, displayColumns, data, showDots: rows.length <= 31 };
+	}, [rows]);
+
+	if (!chartData) return null;
+
+	const { xColumn, displayColumns, data, showDots } = chartData;
 
 	return (
 		<Card>
@@ -107,7 +117,7 @@ export function DataChart({ rows }: DataChartProps) {
 								type="monotone"
 								dataKey={col}
 								stroke={COLORS[i % COLORS.length]}
-								dot={rows.length <= 31}
+								dot={showDots}
 								strokeWidth={1.5}
 							/>
 						))}

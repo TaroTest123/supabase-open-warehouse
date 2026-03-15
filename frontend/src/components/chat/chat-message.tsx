@@ -1,11 +1,17 @@
-import { DataChart } from "@/components/chat/data-chart";
 import { DataTable } from "@/components/chat/data-table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import { Bot, User } from "lucide-react";
+import { Suspense, lazy } from "react";
 import ReactMarkdown from "react-markdown";
+
+const DataChart = lazy(() =>
+	import("@/components/chat/data-chart").then((m) => ({
+		default: m.DataChart,
+	})),
+);
 
 interface ChatMessageProps {
 	message: ChatMessageType;
@@ -52,7 +58,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
 				{message.sqlResults && message.sqlResults.length > 0 && (
 					<div className="flex w-full flex-col gap-2">
-						<DataChart rows={message.sqlResults} />
+						<Suspense fallback={null}>
+							<DataChart rows={message.sqlResults} />
+						</Suspense>
 						<DataTable
 							columns={Object.keys(message.sqlResults[0])}
 							rows={message.sqlResults}

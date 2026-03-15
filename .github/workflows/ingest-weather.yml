@@ -23,10 +23,13 @@ jobs:
     steps:
       - name: Determine date range
         id: dates
+        env:
+          INPUT_START_DATE: ${{ inputs.start_date }}
+          INPUT_END_DATE: ${{ inputs.end_date }}
         run: |
-          if [ -n "${{ inputs.start_date }}" ]; then
-            echo "start_date=${{ inputs.start_date }}" >> "$GITHUB_OUTPUT"
-            echo "end_date=${{ inputs.end_date }}" >> "$GITHUB_OUTPUT"
+          if [ -n "$INPUT_START_DATE" ]; then
+            echo "start_date=$INPUT_START_DATE" >> "$GITHUB_OUTPUT"
+            echo "end_date=$INPUT_END_DATE" >> "$GITHUB_OUTPUT"
           else
             # 前日のデータを取得 (Open-Meteo は2日遅れの場合あり、3日分取得)
             echo "start_date=$(date -u -d '3 days ago' +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
@@ -34,10 +37,15 @@ jobs:
           fi
 
       - name: Call ingest-weather Edge Function
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          START_DATE: ${{ steps.dates.outputs.start_date }}
+          END_DATE: ${{ steps.dates.outputs.end_date }}
         run: |
-          URL="${{ secrets.SUPABASE_URL }}/functions/v1/ingest-weather?start_date=${{ steps.dates.outputs.start_date }}&end_date=${{ steps.dates.outputs.end_date }}"
+          URL="${SUPABASE_URL}/functions/v1/ingest-weather?start_date=${START_DATE}&end_date=${END_DATE}"
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "Content-Type: application/json")
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
@@ -48,42 +56,9 @@ jobs:
           fi
 
   dbt-refresh:
-    name: dbt run & grant permissions
     needs: ingest
-    runs-on: ubuntu-latest
-    environment: Production
-    env:
-      DBT_HOST: ${{ secrets.SUPABASE_DB_HOST }}
-      DBT_PORT: "5432"
-      DBT_USER: ${{ secrets.SUPABASE_DB_USER }}
-      DBT_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      DBT_DBNAME: "postgres"
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
-        with:
-          enable-cache: true
-
-      - name: Install dbt dependencies
-        working-directory: dbt
-        run: uv sync
-
-      - name: Run dbt models
-        working-directory: dbt
-        run: uv run dbt run --profiles-dir .
-
-      - name: Run dbt tests
-        working-directory: dbt
-        run: uv run dbt test --profiles-dir .
-
-      - name: Grant readonly permissions on mart tables
-        env:
-          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
-          PGPORT: "5432"
-          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
-          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PGDATABASE: "postgres"
-        run: psql -c "SELECT grant_readonly_on_mart_tables();"
+    uses: ./.github/workflows/dbt-refresh.yml
+    secrets:
+      SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

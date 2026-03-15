@@ -48,8 +48,8 @@ export const MART_TABLE_SCHEMAS = `
 |---------|------|------|
 | demand_date | DATE | 需要日 |
 | peak_demand_mw | NUMERIC | 日次ピーク需要 (MW) |
-| max_supply_capacity_mw | NUMERIC | 最大供給力 (MW) |
-| reserve_margin_pct | NUMERIC | ピーク時の供給予備率 (%) |
+| peak_supply_capacity_mw | NUMERIC | ピーク需要時の供給力 (MW) |
+| reserve_margin_pct | NUMERIC | ピーク需要時の供給予備率 (%) |
 | min_reserve_margin_pct | NUMERIC | 日次最低供給予備率 (%, 最も逼迫した時間) |
 | max_usage_pct | NUMERIC | 日次最大使用率 (%) |
 | avg_usage_pct | NUMERIC | 日次平均使用率 (%) |

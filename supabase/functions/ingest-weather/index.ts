@@ -1,4 +1,11 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {
+  deriveStatus,
+  getSupabaseEnv,
+  guardRequest,
+  jsonResponse,
+  logIngestion,
+} from "../_shared/ingestion.ts";
 
 // Open-Meteo Historical Weather API — Tokyo (35.69, 139.69)
 const LATITUDE = 35.6894;
@@ -28,19 +35,17 @@ type WeatherRow = {
   pressure_hpa: number | null;
 };
 
+type OpenMeteoHourly = {
+  time: string[];
+  [key: string]: (number | null)[] | string[];
+};
+
 Deno.serve(async (req) => {
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
-  }
+  const guardResponse = guardRequest(req);
+  if (guardResponse) return guardResponse;
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return jsonResponse({ error: "Missing authorization" }, 401);
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const env = getSupabaseEnv();
+  const supabase = createClient(env.url, env.serviceRoleKey);
 
   const url = new URL(req.url);
   const startDate = url.searchParams.get("start_date");
@@ -87,9 +92,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const status = errors.length > 0
-      ? totalUpserted > 0 ? "partial" : "error"
-      : "success";
+    const status = deriveStatus(errors, totalUpserted);
 
     await logIngestion(supabase, {
       sourceUrl: apiUrl,
@@ -139,46 +142,17 @@ function buildApiUrl(startDate: string, endDate: string): string {
   return `https://archive-api.open-meteo.com/v1/archive?${params}`;
 }
 
-function mapToRows(hourly: Record<string, (number | null)[]>): WeatherRow[] {
-  const times: string[] = hourly.time;
+function mapToRows(hourly: OpenMeteoHourly): WeatherRow[] {
+  const times = hourly.time as string[];
   return times.map((time, i) => ({
     recorded_at: `${time}:00+09:00`,
-    temperature_c: hourly.temperature_2m[i] ?? null,
-    relative_humidity_pct: hourly.relative_humidity_2m[i] ?? null,
-    precipitation_mm: hourly.precipitation[i] ?? null,
-    shortwave_radiation_wm2: hourly.shortwave_radiation[i] ?? null,
-    wind_speed_ms: hourly.wind_speed_10m[i] ?? null,
-    wind_direction_deg: hourly.wind_direction_10m[i] ?? null,
-    cloud_cover_pct: hourly.cloud_cover[i] ?? null,
-    pressure_hpa: hourly.pressure_msl[i] ?? null,
+    temperature_c: (hourly.temperature_2m[i] as number) ?? null,
+    relative_humidity_pct: (hourly.relative_humidity_2m[i] as number) ?? null,
+    precipitation_mm: (hourly.precipitation[i] as number) ?? null,
+    shortwave_radiation_wm2: (hourly.shortwave_radiation[i] as number) ?? null,
+    wind_speed_ms: (hourly.wind_speed_10m[i] as number) ?? null,
+    wind_direction_deg: (hourly.wind_direction_10m[i] as number) ?? null,
+    cloud_cover_pct: (hourly.cloud_cover[i] as number) ?? null,
+    pressure_hpa: (hourly.pressure_msl[i] as number) ?? null,
   }));
-}
-
-async function logIngestion(
-  supabase: ReturnType<typeof createClient>,
-  params: {
-    sourceUrl: string;
-    status: string;
-    rowsFetched: number;
-    rowsUpserted: number;
-    errorMessage: string | null;
-    startedAt: string;
-  },
-): Promise<void> {
-  await supabase.from("ingestion_log").insert({
-    source_url: params.sourceUrl,
-    status: params.status,
-    rows_fetched: params.rowsFetched,
-    rows_upserted: params.rowsUpserted,
-    error_message: params.errorMessage,
-    started_at: params.startedAt,
-    completed_at: new Date().toISOString(),
-  });
-}
-
-function jsonResponse(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
 }

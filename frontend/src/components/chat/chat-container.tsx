@@ -9,7 +9,7 @@ import type {
 	ChatMessage as ChatMessageType,
 	ChatResponse,
 } from "@/types/chat";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function ChatContainer() {
 	const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -22,7 +22,7 @@ export function ChatContainer() {
 		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, [messageCount, isLoading]);
 
-	async function handleSend(content: string) {
+	const handleSend = useCallback(async (content: string) => {
 		const userMessage: ChatMessageType = {
 			id: crypto.randomUUID(),
 			role: "user",
@@ -41,8 +41,14 @@ export function ChatContainer() {
 			});
 
 			if (!res.ok) {
-				const errorData = await res.json();
-				throw new Error(errorData.error || "リクエストに失敗しました");
+				let errorText = "リクエストに失敗しました";
+				try {
+					const errorData = await res.json();
+					errorText = errorData.error || errorText;
+				} catch {
+					// non-JSON error response (e.g. proxy 502)
+				}
+				throw new Error(errorText);
 			}
 
 			const data: ChatResponse = await res.json();
@@ -74,7 +80,7 @@ export function ChatContainer() {
 		} finally {
 			setIsLoading(false);
 		}
-	}
+	}, []);
 
 	return (
 		<Card className="flex h-full flex-col">

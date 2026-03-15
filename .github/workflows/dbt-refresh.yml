@@ -1,0 +1,52 @@
+name: dbt refresh (reusable)
+
+on:
+  workflow_call:
+    secrets:
+      SUPABASE_DB_HOST:
+        required: true
+      SUPABASE_DB_USER:
+        required: true
+      SUPABASE_DB_PASSWORD:
+        required: true
+
+jobs:
+  dbt-refresh:
+    name: dbt run & grant permissions
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      DBT_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      DBT_PORT: "5432"
+      DBT_USER: ${{ secrets.SUPABASE_DB_USER }}
+      DBT_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      DBT_DBNAME: "postgres"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
+        with:
+          enable-cache: true
+
+      - name: Install dbt dependencies
+        working-directory: dbt
+        run: uv sync
+
+      - name: Run dbt models
+        working-directory: dbt
+        run: uv run dbt run --profiles-dir .
+
+      - name: Run dbt tests
+        working-directory: dbt
+        run: uv run dbt test --profiles-dir .
+
+      - name: Grant readonly permissions on mart tables
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
+          PGPORT: "5432"
+          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGDATABASE: "postgres"
+        run: psql -c "SELECT grant_readonly_on_mart_tables();"
