@@ -160,6 +160,8 @@ npx @liam-hq/cli erd build --format tbls \
   - [0001-hosting-vercel.md](docs/adr/0001-hosting-vercel.md) — Vercel をホスティングに採用
   - [0002-tepco-csv-ingestion.md](docs/adr/0002-tepco-csv-ingestion.md) — TEPCO CSV 自動取り込みに Edge Function + GitHub Actions cron を採用
   - [0003-ci-postgres-service-container.md](docs/adr/0003-ci-postgres-service-container.md) — CI の dbt ジョブで PostgreSQL サービスコンテナを採用
+  - [0004-weather-data-open-meteo.md](docs/adr/0004-weather-data-open-meteo.md) — 気象データソースに Open-Meteo Historical Weather API を採用
+  - [0005-edge-function-shared-modules.md](docs/adr/0005-edge-function-shared-modules.md) — Edge Functions の共有モジュールパターンを採用
 
 ## ワークフロー
 
