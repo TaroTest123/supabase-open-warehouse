@@ -2,14 +2,14 @@
 
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
+import { SampleQuestions } from "@/components/chat/sample-questions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
 	ChatMessage as ChatMessageType,
 	ChatResponse,
 } from "@/types/chat";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function ChatContainer() {
 	const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -22,7 +22,7 @@ export function ChatContainer() {
 		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, [messageCount, isLoading]);
 
-	async function handleSend(content: string) {
+	const handleSend = useCallback(async (content: string) => {
 		const userMessage: ChatMessageType = {
 			id: crypto.randomUUID(),
 			role: "user",
@@ -41,8 +41,14 @@ export function ChatContainer() {
 			});
 
 			if (!res.ok) {
-				const errorData = await res.json();
-				throw new Error(errorData.error || "リクエストに失敗しました");
+				let errorText = "リクエストに失敗しました";
+				try {
+					const errorData = await res.json();
+					errorText = errorData.error || errorText;
+				} catch {
+					// non-JSON error response (e.g. proxy 502)
+				}
+				throw new Error(errorText);
 			}
 
 			const data: ChatResponse = await res.json();
@@ -74,23 +80,17 @@ export function ChatContainer() {
 		} finally {
 			setIsLoading(false);
 		}
-	}
+	}, []);
 
 	return (
 		<Card className="flex h-full flex-col">
 			<CardHeader className="border-b px-6 py-4">
 				<CardTitle>TEPCO 電力需要チャット</CardTitle>
 			</CardHeader>
-			<CardContent className="flex flex-1 flex-col gap-4 p-0">
-				<ScrollArea className="flex-1 px-6 py-4">
+			<CardContent className="flex min-h-0 flex-1 flex-col gap-4 p-0">
+				<div className="flex-1 overflow-y-auto px-6 py-4">
 					<div className="flex flex-col gap-4">
-						{messages.length === 0 && (
-							<p className="text-center text-sm text-muted-foreground">
-								電力需要データについて質問してください。
-								<br />
-								例: 「7月の最大電力需要は？」「時間帯別の平均需要を教えて」
-							</p>
-						)}
+						{messages.length === 0 && <SampleQuestions onSelect={handleSend} />}
 						{messages.map((msg) => (
 							<ChatMessage key={msg.id} message={msg} />
 						))}
@@ -105,7 +105,7 @@ export function ChatContainer() {
 						)}
 						<div ref={bottomRef} />
 					</div>
-				</ScrollArea>
+				</div>
 				<div className="border-t px-6 py-4">
 					<ChatInput onSend={handleSend} isLoading={isLoading} />
 				</div>

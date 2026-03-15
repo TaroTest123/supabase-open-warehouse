@@ -1,0 +1,64 @@
+name: Ingest Weather Data
+
+on:
+  schedule:
+    # 毎日 06:00 JST (21:00 UTC) — 前日分の気象データ取得
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "開始日 (YYYY-MM-DD)"
+        required: true
+        type: string
+      end_date:
+        description: "終了日 (YYYY-MM-DD)"
+        required: true
+        type: string
+
+jobs:
+  ingest:
+    name: Fetch weather from Open-Meteo
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Determine date range
+        id: dates
+        env:
+          INPUT_START_DATE: ${{ inputs.start_date }}
+          INPUT_END_DATE: ${{ inputs.end_date }}
+        run: |
+          if [ -n "$INPUT_START_DATE" ]; then
+            echo "start_date=$INPUT_START_DATE" >> "$GITHUB_OUTPUT"
+            echo "end_date=$INPUT_END_DATE" >> "$GITHUB_OUTPUT"
+          else
+            # 前日のデータを取得 (Open-Meteo は2日遅れの場合あり、3日分取得)
+            echo "start_date=$(date -u -d '3 days ago' +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+            echo "end_date=$(date -u -d '1 day ago' +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Call ingest-weather Edge Function
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          START_DATE: ${{ steps.dates.outputs.start_date }}
+          END_DATE: ${{ steps.dates.outputs.end_date }}
+        run: |
+          URL="${SUPABASE_URL}/functions/v1/ingest-weather?start_date=${START_DATE}&end_date=${END_DATE}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "Response ($HTTP_CODE): $BODY"
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::Edge Function returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  dbt-refresh:
+    needs: ingest
+    uses: ./.github/workflows/dbt-refresh.yml
+    secrets:
+      SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

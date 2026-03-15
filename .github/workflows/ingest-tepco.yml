@@ -21,10 +21,13 @@ jobs:
     steps:
       - name: Determine URL
         id: url
+        env:
+          INPUT_CSV_URL: ${{ inputs.csv_url }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
-          if [ -n "${{ inputs.csv_url }}" ]; then
-            echo "target_url=${{ inputs.csv_url }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "0 18 3 * *" ]; then
+          if [ -n "$INPUT_CSV_URL" ]; then
+            echo "target_url=$INPUT_CSV_URL" >> "$GITHUB_OUTPUT"
+          elif [ "$SCHEDULE" = "0 18 3 * *" ]; then
             # 前月の YYYYMM を計算
             PREV_MONTH=$(date -u -d "$(date -u +%Y-%m-01) -1 month" +%Y%m)
             echo "target_url=https://www.tepco.co.jp/forecast/html/images/${PREV_MONTH}_power_usage.zip" >> "$GITHUB_OUTPUT"
@@ -34,13 +37,17 @@ jobs:
 
       - name: Call ingest Edge Function
         id: ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TARGET_URL: ${{ steps.url.outputs.target_url }}
         run: |
-          URL="${{ secrets.SUPABASE_URL }}/functions/v1/ingest-tepco-csv"
-          if [ -n "${{ steps.url.outputs.target_url }}" ]; then
-            URL="${URL}?url=${{ steps.url.outputs.target_url }}"
+          URL="${SUPABASE_URL}/functions/v1/ingest-tepco-csv"
+          if [ -n "$TARGET_URL" ]; then
+            URL="${URL}?url=${TARGET_URL}"
           fi
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "Content-Type: application/json")
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
@@ -53,42 +60,9 @@ jobs:
           fi
 
   dbt-refresh:
-    name: dbt run & grant permissions
     needs: ingest
-    runs-on: ubuntu-latest
-    environment: Production
-    env:
-      DBT_HOST: ${{ secrets.SUPABASE_DB_HOST }}
-      DBT_PORT: "5432"
-      DBT_USER: ${{ secrets.SUPABASE_DB_USER }}
-      DBT_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      DBT_DBNAME: "postgres"
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
-        with:
-          enable-cache: true
-
-      - name: Install dbt dependencies
-        working-directory: dbt
-        run: uv sync
-
-      - name: Run dbt models
-        working-directory: dbt
-        run: uv run dbt run --profiles-dir .
-
-      - name: Run dbt tests
-        working-directory: dbt
-        run: uv run dbt test --profiles-dir .
-
-      - name: Grant readonly permissions on mart tables
-        env:
-          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
-          PGPORT: "5432"
-          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
-          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PGDATABASE: "postgres"
-        run: psql -c "SELECT grant_readonly_on_mart_tables();"
+    uses: ./.github/workflows/dbt-refresh.yml
+    secrets:
+      SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

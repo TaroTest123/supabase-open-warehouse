@@ -1,11 +1,17 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { unzipSync } from "npm:fflate";
+import {
+  type IngestionStatus,
+  deriveStatus,
+  getSupabaseEnv,
+  guardRequest,
+  jsonResponse,
+  logIngestion,
+} from "../_shared/ingestion.ts";
 
 const DEFAULT_CSV_URL =
   "https://www.tepco.co.jp/forecast/html/images/juyo-d1-j.csv";
 const BATCH_SIZE = 1000;
-
-type IngestionStatus = "success" | "error" | "partial";
 
 type TepcoRow = {
   date_str: string;
@@ -30,26 +36,11 @@ type ParsedCsvResult = {
 };
 
 Deno.serve(async (req) => {
-  // Only accept POST
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  const guardResponse = guardRequest(req);
+  if (guardResponse) return guardResponse;
 
-  // Verify Authorization header
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Missing authorization" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const env = getSupabaseEnv();
+  const supabase = createClient(env.url, env.serviceRoleKey);
 
   // Get CSV URL from query parameter or use default
   const url = new URL(req.url);
@@ -117,12 +108,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const status: IngestionStatus =
-      errors.length > 0
-        ? totalUpserted > 0 || fiveMinUpserted > 0
-          ? "partial"
-          : "error"
-        : "success";
+    const status: IngestionStatus = deriveStatus(errors, totalUpserted + fiveMinUpserted);
 
     await logIngestion(supabase, {
       sourceUrl: csvUrl,
@@ -278,33 +264,4 @@ async function errorResult(
     { status: "error", rows_fetched: 0, rows_upserted: 0, url: csvUrl, error: errorMessage },
     httpStatus,
   );
-}
-
-async function logIngestion(
-  supabase: ReturnType<typeof createClient>,
-  params: {
-    sourceUrl: string;
-    status: IngestionStatus;
-    rowsFetched: number;
-    rowsUpserted: number;
-    errorMessage: string | null;
-    startedAt: string;
-  },
-): Promise<void> {
-  await supabase.from("ingestion_log").insert({
-    source_url: params.sourceUrl,
-    status: params.status,
-    rows_fetched: params.rowsFetched,
-    rows_upserted: params.rowsUpserted,
-    error_message: params.errorMessage,
-    started_at: params.startedAt,
-    completed_at: new Date().toISOString(),
-  });
-}
-
-function jsonResponse(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
 }

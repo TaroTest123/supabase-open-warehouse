@@ -18,6 +18,11 @@ models:
         description: "需要実績 (MW)"
         tests:
           - not_null
+      - name: forecast_mw
+        description: "需要予測値 (MW)。ZIP 1時間セクションのみ含まれるため NULL の場合あり"
+        tests:
+          - not_null:
+              severity: warn
       - name: supply_capacity_mw
         description: "供給力 (MW)。年次 CSV には含まれないため NULL の場合あり"
         tests:
@@ -28,6 +33,38 @@ models:
         tests:
           - not_null:
               severity: warn
+      - name: loaded_at
+        description: "データ取り込み日時"
+
+  - name: stg_weather_tokyo
+    description: "東京エリア気象データ（型変換・JST日付/時刻分離済み）"
+    columns:
+      - name: id
+        description: "元テーブルのサロゲートキー"
+      - name: weather_date
+        description: "観測日 (DATE型, JST)"
+        tests:
+          - not_null
+      - name: weather_time
+        description: "観測時刻 (TIME型, JST)"
+        tests:
+          - not_null
+      - name: temperature_c
+        description: "気温 (°C)"
+      - name: relative_humidity_pct
+        description: "相対湿度 (%)"
+      - name: precipitation_mm
+        description: "降水量 (mm)"
+      - name: shortwave_radiation_wm2
+        description: "短波放射 / 日射量 (W/m²)"
+      - name: wind_speed_ms
+        description: "風速 (m/s)"
+      - name: wind_direction_deg
+        description: "風向 (°)"
+      - name: cloud_cover_pct
+        description: "雲量 (%)"
+      - name: pressure_hpa
+        description: "海面気圧 (hPa)"
       - name: loaded_at
         description: "データ取り込み日時"
 

@@ -63,6 +63,87 @@ models:
       - name: days_with_data
         description: "データのある日数"
 
+  - name: mart_forecast_accuracy
+    description: "需要予測 vs 実績の精度分析（日次）"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: record_count
+        description: "全レコード数"
+      - name: forecast_count
+        description: "予測値ありのレコード数"
+      - name: avg_demand_mw
+        description: "日次平均需要実績 (MW)"
+      - name: avg_forecast_mw
+        description: "日次平均需要予測 (MW)"
+      - name: avg_error_mw
+        description: "平均誤差 (MW, 正=過大予測)"
+      - name: mae_mw
+        description: "平均絶対誤差 MAE (MW)"
+      - name: mape_pct
+        description: "平均絶対誤差率 MAPE (%)"
+
+  - name: mart_supply_reserve
+    description: "日次の供給予備率・電力逼迫度分析"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: peak_demand_mw
+        description: "日次ピーク需要 (MW)"
+      - name: peak_supply_capacity_mw
+        description: "ピーク需要時の供給力 (MW)"
+      - name: reserve_margin_pct
+        description: "ピーク需要時の供給予備率 (%)"
+      - name: min_reserve_margin_pct
+        description: "日次最低供給予備率 (%, 最も逼迫した時間)"
+      - name: max_usage_pct
+        description: "日次最大使用率 (%)"
+      - name: avg_usage_pct
+        description: "日次平均使用率 (%)"
+      - name: record_count
+        description: "レコード数"
+
+  - name: mart_demand_weather
+    description: "電力需要 × 気象データの日次結合分析"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: peak_demand_mw
+        description: "日次ピーク需要 (MW)"
+      - name: min_demand_mw
+        description: "日次最小需要 (MW)"
+      - name: avg_demand_mw
+        description: "日次平均需要 (MW)"
+      - name: max_usage_pct
+        description: "日次最大使用率 (%)"
+      - name: max_temperature_c
+        description: "最高気温 (°C)"
+      - name: min_temperature_c
+        description: "最低気温 (°C)"
+      - name: avg_temperature_c
+        description: "平均気温 (°C)"
+      - name: avg_humidity_pct
+        description: "平均湿度 (%)"
+      - name: total_precipitation_mm
+        description: "日降水量 (mm)"
+      - name: avg_radiation_wm2
+        description: "平均日射量 (W/m²)"
+      - name: max_radiation_wm2
+        description: "最大日射量 (W/m²)"
+      - name: avg_wind_speed_ms
+        description: "平均風速 (m/s)"
+      - name: avg_cloud_cover_pct
+        description: "平均雲量 (%)"
+
   - name: mart_daily_solar
     description: "日次太陽光発電サマリ（5分間隔データから集計）"
     columns:

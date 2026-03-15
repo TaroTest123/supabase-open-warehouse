@@ -24,6 +24,32 @@ sources:
           - name: loaded_at
             description: "データ取り込み日時"
 
+      - name: raw_weather_tokyo
+        description: "Open-Meteo Historical Weather API による東京エリアの気象データ (1時間間隔)"
+        columns:
+          - name: id
+            description: "サロゲートキー"
+          - name: recorded_at
+            description: "観測日時 (TIMESTAMPTZ)"
+          - name: temperature_c
+            description: "気温 (°C)"
+          - name: relative_humidity_pct
+            description: "相対湿度 (%)"
+          - name: precipitation_mm
+            description: "降水量 (mm)"
+          - name: shortwave_radiation_wm2
+            description: "短波放射 / 日射量 (W/m²)"
+          - name: wind_speed_ms
+            description: "風速 (m/s)"
+          - name: wind_direction_deg
+            description: "風向 (°)"
+          - name: cloud_cover_pct
+            description: "雲量 (%)"
+          - name: pressure_hpa
+            description: "海面気圧 (hPa)"
+          - name: loaded_at
+            description: "データ取り込み日時"
+
       - name: raw_tepco_demand_5min
         description: "TEPCO 月別 ZIP の5分間隔セクションの生データ"
         columns:

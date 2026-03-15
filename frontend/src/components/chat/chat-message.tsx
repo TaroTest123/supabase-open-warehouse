@@ -4,6 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import { Bot, User } from "lucide-react";
+import { Suspense, lazy } from "react";
+import ReactMarkdown from "react-markdown";
+
+const DataChart = lazy(() =>
+	import("@/components/chat/data-chart").then((m) => ({
+		default: m.DataChart,
+	})),
+);
 
 interface ChatMessageProps {
 	message: ChatMessageType;
@@ -27,7 +35,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
 			>
 				<Card className={isUser ? "bg-primary text-primary-foreground" : ""}>
 					<CardContent className="p-3">
-						<p className="whitespace-pre-wrap text-sm">{message.content}</p>
+						{isUser ? (
+							<p className="whitespace-pre-wrap text-sm">{message.content}</p>
+						) : (
+							<div className="prose prose-sm dark:prose-invert max-w-none">
+								<ReactMarkdown>{message.content}</ReactMarkdown>
+							</div>
+						)}
 					</CardContent>
 				</Card>
 
@@ -43,7 +57,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
 				)}
 
 				{message.sqlResults && message.sqlResults.length > 0 && (
-					<div className="w-full">
+					<div className="flex w-full flex-col gap-2">
+						<Suspense fallback={null}>
+							<DataChart rows={message.sqlResults} />
+						</Suspense>
 						<DataTable
 							columns={Object.keys(message.sqlResults[0])}
 							rows={message.sqlResults}
