@@ -130,6 +130,12 @@ export async function POST(request: NextRequest) {
 				userMessage = error.message;
 			} else if (error.message.includes("SUPABASE_READONLY_DB_URL")) {
 				userMessage = "データベースの設定が完了していません。";
+			} else if (
+				"code" in error &&
+				(error as Record<string, unknown>).code === "42702"
+			) {
+				userMessage =
+					"SQLのカラム名が曖昧でした。質問を少し変えて再度お試しください。";
 			}
 		}
 
