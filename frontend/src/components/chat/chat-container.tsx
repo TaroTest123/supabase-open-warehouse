@@ -2,6 +2,7 @@
 
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
+import { SampleQuestions } from "@/components/chat/sample-questions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -84,13 +85,7 @@ export function ChatContainer() {
 			<CardContent className="flex flex-1 flex-col gap-4 p-0">
 				<ScrollArea className="flex-1 px-6 py-4">
 					<div className="flex flex-col gap-4">
-						{messages.length === 0 && (
-							<p className="text-center text-sm text-muted-foreground">
-								電力需要データについて質問してください。
-								<br />
-								例: 「7月の最大電力需要は？」「時間帯別の平均需要を教えて」
-							</p>
-						)}
+						{messages.length === 0 && <SampleQuestions onSelect={handleSend} />}
 						{messages.map((msg) => (
 							<ChatMessage key={msg.id} message={msg} />
 						))}

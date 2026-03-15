@@ -17,6 +17,9 @@ select
     to_date(date_str, 'YYYY/MM/DD') as demand_date,
     time_str::time as demand_time,
     demand_mw_str::numeric * 10 as demand_mw,
+    case when forecast_mw_str is not null and forecast_mw_str != ''
+         then forecast_mw_str::numeric * 10
+    end as forecast_mw,
     supply_capacity_mw_str::numeric * 10 as supply_capacity_mw,
     usage_pct_str::numeric as usage_pct,
     loaded_at
