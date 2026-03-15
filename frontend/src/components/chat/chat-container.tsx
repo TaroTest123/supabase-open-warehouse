@@ -4,7 +4,6 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { SampleQuestions } from "@/components/chat/sample-questions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
 	ChatMessage as ChatMessageType,
@@ -82,8 +81,8 @@ export function ChatContainer() {
 			<CardHeader className="border-b px-6 py-4">
 				<CardTitle>TEPCO 電力需要チャット</CardTitle>
 			</CardHeader>
-			<CardContent className="flex flex-1 flex-col gap-4 p-0">
-				<ScrollArea className="flex-1 px-6 py-4">
+			<CardContent className="flex min-h-0 flex-1 flex-col gap-4 p-0">
+				<div className="flex-1 overflow-y-auto px-6 py-4">
 					<div className="flex flex-col gap-4">
 						{messages.length === 0 && <SampleQuestions onSelect={handleSend} />}
 						{messages.map((msg) => (
@@ -100,7 +99,7 @@ export function ChatContainer() {
 						)}
 						<div ref={bottomRef} />
 					</div>
-				</ScrollArea>
+				</div>
 				<div className="border-t px-6 py-4">
 					<ChatInput onSend={handleSend} isLoading={isLoading} />
 				</div>
