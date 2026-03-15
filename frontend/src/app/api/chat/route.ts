@@ -130,6 +130,12 @@ export async function POST(request: NextRequest) {
 				userMessage = error.message;
 			} else if (error.message.includes("SUPABASE_READONLY_DB_URL")) {
 				userMessage = "データベースの設定が完了していません。";
+			} else if (
+				"code" in error &&
+				(error as Record<string, unknown>).code === "42P01"
+			) {
+				userMessage =
+					"参照先のテーブルがまだ作成されていません。別のテーブルで質問を試すか、しばらく経ってからお試しください。";
 			}
 		}
 
