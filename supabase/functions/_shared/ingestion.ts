@@ -2,10 +2,20 @@ import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 export type IngestionStatus = "success" | "error" | "partial";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+};
+
+export function corsPreflightResponse(): Response {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 }
 
@@ -40,6 +50,9 @@ export function deriveStatus(
 }
 
 export function guardRequest(req: Request): Response | null {
+  if (req.method === "OPTIONS") {
+    return corsPreflightResponse();
+  }
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
