@@ -1,0 +1,22 @@
+meta {
+  name: Validation Error - Empty Message
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/chat
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "message": ""
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.error: isString
+}

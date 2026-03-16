@@ -1,0 +1,22 @@
+meta {
+  name: Send Message
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/chat
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "message": "直近30日間のピーク需要の推移は？"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.content: isString
+}

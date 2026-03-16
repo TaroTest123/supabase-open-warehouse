@@ -1,0 +1,133 @@
+openapi: 3.1.0
+info:
+  title: Supabase Open Warehouse Chat API
+  description: |
+    TEPCO 電力需要データに対して自然言語で問い合わせを行う Chat API。
+    Claude API を使って自然言語を SQL に変換し、読み取り専用ロールで実行した結果を要約して返します。
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://supabase-open-warehouse.vercel.app
+    description: Production (Vercel)
+
+paths:
+  /api/chat:
+    post:
+      operationId: sendChatMessage
+      summary: チャットメッセージ送信
+      description: |
+        自然言語の質問を受け取り、SQL を生成・実行して結果を要約して返します。
+        生成される SQL は SELECT のみで、読み取り専用ロール (`readonly_user`) で実行されます。
+        `statement_timeout` は 10 秒に設定されています。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+            examples:
+              basic:
+                summary: 基本的な質問
+                value:
+                  message: "直近30日間のピーク需要の推移は？"
+              comparison:
+                summary: 比較クエリ
+                value:
+                  message: "月別の平均需要と最高気温の推移を比較して"
+      responses:
+        "200":
+          description: 成功レスポンス
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+              examples:
+                with_sql:
+                  summary: SQL 実行結果付きレスポンス
+                  value:
+                    content: "直近30日間のピーク需要は 3,500〜4,200 MW の範囲で推移しています。"
+                    sqlQuery: "SELECT demand_date, max_demand_mw FROM mart_daily_demand ORDER BY demand_date DESC LIMIT 30"
+                    sqlResults:
+                      - demand_date: "2025-03-15"
+                        max_demand_mw: 4200
+                text_only:
+                  summary: テキストのみレスポンス（SQL 不要の場合）
+                  value:
+                    content: "このアプリケーションでは TEPCO の電力需要データを分析できます。"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                empty_message:
+                  summary: メッセージ未指定
+                  value:
+                    error: "message は必須です"
+                too_long:
+                  summary: メッセージが長すぎる
+                  value:
+                    error: "メッセージは1000文字以内で入力してください"
+        "500":
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                general:
+                  summary: 一般的なサーバーエラー
+                  value:
+                    error: "サーバーエラーが発生しました。しばらく経ってからお試しください。"
+                ambiguous_column:
+                  summary: SQL カラム名曖昧エラー
+                  value:
+                    error: "SQLのカラム名が曖昧でした。質問を少し変えて再度お試しください。"
+
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: ユーザーの質問（自然言語）
+          examples:
+            - "直近30日間のピーク需要の推移は？"
+
+    ChatResponse:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: AI が生成した回答テキスト
+        sqlQuery:
+          type: string
+          description: 実行された SQL クエリ（SQL 実行時のみ）
+        sqlResults:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: SQL 実行結果の行データ（最大100行）
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: エラーメッセージ
