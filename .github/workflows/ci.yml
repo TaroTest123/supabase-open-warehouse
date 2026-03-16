@@ -11,6 +11,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  schema-consistency:
+    name: Mart schema consistency check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Check MART_TABLE_SCHEMAS matches dbt models
+        run: |
+          set -euo pipefail
+
+          # Extract table names from constants.ts (## mart_xxx — description)
+          frontend_tables=$(grep -oP '(?<=^## )\w+' frontend/src/lib/constants.ts | sort)
+
+          # Extract table names from dbt/models/mart/*.sql (filename without extension)
+          dbt_tables=$(find dbt/models/mart -name 'mart_*.sql' -exec basename {} .sql \; | sort)
+
+          echo "=== Tables in constants.ts ==="
+          echo "$frontend_tables"
+          echo ""
+          echo "=== Tables in dbt/models/mart/ ==="
+          echo "$dbt_tables"
+          echo ""
+
+          # Check for tables in constants.ts but missing from dbt
+          missing_from_dbt=$(comm -23 <(echo "$frontend_tables") <(echo "$dbt_tables")) || true
+          if [ -n "$missing_from_dbt" ]; then
+            echo "::error::Tables in constants.ts but missing dbt model: $missing_from_dbt"
+            exit 1
+          fi
+
+          # Check for tables in dbt but missing from constants.ts
+          missing_from_frontend=$(comm -13 <(echo "$frontend_tables") <(echo "$dbt_tables")) || true
+          if [ -n "$missing_from_frontend" ]; then
+            echo "::warning::Tables in dbt but missing from constants.ts: $missing_from_frontend"
+          fi
+
+          echo "✅ All tables in constants.ts have corresponding dbt models."
+
   frontend:
     name: Frontend (lint & build)
     runs-on: ubuntu-latest

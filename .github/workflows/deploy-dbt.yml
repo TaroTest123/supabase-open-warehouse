@@ -1,0 +1,22 @@
+name: Deploy dbt models
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dbt/models/**"
+      - "dbt/dbt_project.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dbt
+  cancel-in-progress: false
+
+jobs:
+  dbt-deploy:
+    name: Run dbt on production
+    uses: ./.github/workflows/dbt-refresh.yml
+    secrets:
+      SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
