@@ -9,6 +9,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_tepco_demand')
+                field: demand_date
       - name: max_demand_mw
         description: "日次最大需要 (MW)"
       - name: min_demand_mw
@@ -27,6 +31,10 @@ models:
         description: "需要日"
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_tepco_demand')
+                field: demand_date
       - name: hour_of_day
         description: "時間帯 (0-23)"
         tests:
@@ -71,6 +79,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_tepco_demand')
+                field: demand_date
       - name: record_count
         description: "全レコード数"
       - name: forecast_count
@@ -94,6 +106,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_tepco_demand')
+                field: demand_date
       - name: peak_demand_mw
         description: "日次ピーク需要 (MW)"
       - name: peak_supply_capacity_mw
@@ -117,6 +133,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_tepco_demand')
+                field: demand_date
       - name: peak_demand_mw
         description: "日次ピーク需要 (MW)"
       - name: min_demand_mw
@@ -152,6 +172,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_tepco_demand_5min')
+                field: demand_date
       - name: max_solar_mw
         description: "日次最大太陽光発電 (MW)"
       - name: min_solar_mw
@@ -177,6 +201,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_tepco_demand')
+                field: demand_date
       - name: day_of_week
         description: "曜日番号 (1=月..7=日)"
       - name: day_name
@@ -204,6 +232,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('mart_daily_demand')
+                field: demand_date
       - name: peak_demand_mw
         description: "日次ピーク需要 (MW)"
       - name: avg_demand_mw
@@ -227,6 +259,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('mart_daily_demand')
+                field: demand_date
       - name: peak_demand_mw
         description: "日次ピーク需要 (MW)"
       - name: avg_demand_mw
