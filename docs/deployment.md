@@ -346,15 +346,21 @@ changes (dorny/paths-filter)
 
 ### Scalar UI から API を呼び出すと CORS エラーになる
 
-GitHub Pages 上の Scalar UI (`*.github.io`) から Vercel の Chat API (`*.vercel.app`) を呼ぶと、ブラウザのクロスオリジンポリシーによりリクエストがブロックされます。
+GitHub Pages 上の Scalar UI (`*.github.io`) から Vercel の Chat API (`*.vercel.app`) や Supabase Edge Functions (`*.supabase.co`) を呼ぶと、ブラウザのクロスオリジンポリシーによりリクエストがブロックされます。
 
-**原因**: API ルート (`/api/chat`) に CORS ヘッダーがなかった。ブラウザは異なるオリジン間の fetch を行う際、まず OPTIONS プリフライトリクエストを送信し、サーバーから `Access-Control-Allow-Origin` ヘッダーが返されなければ本リクエストをブロックします。
+**原因**: ブラウザは異なるオリジン間の fetch を行う際、まず OPTIONS プリフライトリクエストを送信し、サーバーから `Access-Control-Allow-Origin` ヘッダーが返されなければ本リクエストをブロックします。Chat API と Edge Functions の両方に CORS ヘッダーがなかった。
 
-**対応**: `route.ts` に以下を追加しました:
-- `OPTIONS` ハンドラ（プリフライトリクエストに 204 で応答）
-- すべてのレスポンスに `Access-Control-Allow-Origin: *` / `Allow-Methods` / `Allow-Headers` ヘッダーを付与
+**対応**:
 
-**新しい API ルートを追加する際の注意**: 外部ドキュメント（Scalar UI 等）やサードパーティクライアントからの呼び出しが想定される場合は、同様に CORS ヘッダーと OPTIONS ハンドラを追加してください。
+| 対象 | 修正ファイル | 内容 |
+|------|-------------|------|
+| Chat API | `frontend/src/app/api/chat/route.ts` | `OPTIONS` ハンドラ + 全レスポンスに CORS ヘッダー |
+| Edge Functions | `supabase/functions/_shared/ingestion.ts` | `corsPreflightResponse()` + `guardRequest` で OPTIONS 対応 + `jsonResponse` に CORS ヘッダー |
+
+**新しいエンドポイントを追加する際の注意**:
+
+- **Next.js API Route**: `OPTIONS` エクスポートと `CORS_HEADERS` を各レスポンスに追加（`route.ts` を参照）
+- **Edge Function**: `_shared/ingestion.ts` の `guardRequest` / `jsonResponse` を使えば自動で CORS 対応される。新しい共有モジュールを作る場合は同様に CORS ヘッダーを含めること
 
 ### Vercel でチャットが動作しない
 
