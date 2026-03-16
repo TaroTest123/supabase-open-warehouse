@@ -2,18 +2,153 @@ dsn: postgres://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable
 docPath: docs-generated/schema
 include:
   - public.raw_tepco_demand
+  - public.raw_tepco_demand_5min
+  - public.raw_weather_tokyo
   - public.stg_tepco_demand
+  - public.stg_tepco_demand_5min
+  - public.stg_weather_tokyo
   - public.mart_daily_demand
   - public.mart_hourly_demand
   - public.mart_monthly_stats
+  - public.mart_forecast_accuracy
+  - public.mart_supply_reserve
+  - public.mart_demand_weather
+  - public.mart_daily_solar
+  - public.mart_weekly_pattern
+  - public.mart_demand_moving_avg
+  - public.mart_demand_anomaly
+relations:
+  # raw → staging (id ベース)
+  - table: public.stg_tepco_demand
+    columns:
+      - id
+    parentTable: public.raw_tepco_demand
+    parentColumns:
+      - id
+    def: "stg_tepco_demand id -> raw_tepco_demand id"
+  - table: public.stg_tepco_demand_5min
+    columns:
+      - id
+    parentTable: public.raw_tepco_demand_5min
+    parentColumns:
+      - id
+    def: "stg_tepco_demand_5min id -> raw_tepco_demand_5min id"
+  - table: public.stg_weather_tokyo
+    columns:
+      - id
+    parentTable: public.raw_weather_tokyo
+    parentColumns:
+      - id
+    def: "stg_weather_tokyo id -> raw_weather_tokyo id"
+  # staging → mart (demand_date ベース)
+  - table: public.mart_daily_demand
+    columns:
+      - demand_date
+    parentTable: public.stg_tepco_demand
+    parentColumns:
+      - demand_date
+    def: "mart_daily_demand demand_date -> stg_tepco_demand demand_date"
+  - table: public.mart_hourly_demand
+    columns:
+      - demand_date
+    parentTable: public.stg_tepco_demand
+    parentColumns:
+      - demand_date
+    def: "mart_hourly_demand demand_date -> stg_tepco_demand demand_date"
+  - table: public.mart_forecast_accuracy
+    columns:
+      - demand_date
+    parentTable: public.stg_tepco_demand
+    parentColumns:
+      - demand_date
+    def: "mart_forecast_accuracy demand_date -> stg_tepco_demand demand_date"
+  - table: public.mart_supply_reserve
+    columns:
+      - demand_date
+    parentTable: public.stg_tepco_demand
+    parentColumns:
+      - demand_date
+    def: "mart_supply_reserve demand_date -> stg_tepco_demand demand_date"
+  - table: public.mart_weekly_pattern
+    columns:
+      - demand_date
+    parentTable: public.stg_tepco_demand
+    parentColumns:
+      - demand_date
+    def: "mart_weekly_pattern demand_date -> stg_tepco_demand demand_date"
+  - table: public.mart_monthly_stats
+    columns:
+      - month_start
+    parentTable: public.stg_tepco_demand
+    parentColumns:
+      - demand_date
+    def: "mart_monthly_stats month_start -> stg_tepco_demand demand_date"
+  - table: public.mart_demand_weather
+    columns:
+      - demand_date
+    parentTable: public.stg_tepco_demand
+    parentColumns:
+      - demand_date
+    def: "mart_demand_weather demand_date -> stg_tepco_demand demand_date"
+  - table: public.mart_demand_weather
+    columns:
+      - demand_date
+    parentTable: public.stg_weather_tokyo
+    parentColumns:
+      - weather_date
+    def: "mart_demand_weather demand_date -> stg_weather_tokyo weather_date"
+  - table: public.mart_daily_solar
+    columns:
+      - demand_date
+    parentTable: public.stg_tepco_demand_5min
+    parentColumns:
+      - demand_date
+    def: "mart_daily_solar demand_date -> stg_tepco_demand_5min demand_date"
+  # mart → mart
+  - table: public.mart_demand_moving_avg
+    columns:
+      - demand_date
+    parentTable: public.mart_daily_demand
+    parentColumns:
+      - demand_date
+    def: "mart_demand_moving_avg demand_date -> mart_daily_demand demand_date"
+  - table: public.mart_demand_anomaly
+    columns:
+      - demand_date
+    parentTable: public.mart_daily_demand
+    parentColumns:
+      - demand_date
+    def: "mart_demand_anomaly demand_date -> mart_daily_demand demand_date"
 comments:
   - table: public.raw_tepco_demand
     tableComment: "TEPCO でんき予報 CSV の生データ格納テーブル"
+  - table: public.raw_tepco_demand_5min
+    tableComment: "TEPCO 5分間隔データ（月別 ZIP）の生データ格納テーブル"
+  - table: public.raw_weather_tokyo
+    tableComment: "Open-Meteo 東京エリア気象データの生データ格納テーブル"
   - table: public.stg_tepco_demand
     tableComment: "型変換・クレンジング・dedup 済みステージングビュー"
+  - table: public.stg_tepco_demand_5min
+    tableComment: "5分間隔データの型変換・クレンジング済みステージングビュー"
+  - table: public.stg_weather_tokyo
+    tableComment: "気象データの型変換・JST日付/時刻分離済みステージングビュー"
   - table: public.mart_daily_demand
     tableComment: "日次電力需要サマリ"
   - table: public.mart_hourly_demand
     tableComment: "日×時間帯の電力需要分析"
   - table: public.mart_monthly_stats
     tableComment: "月次電力需要統計"
+  - table: public.mart_forecast_accuracy
+    tableComment: "需要予測 vs 実績の精度分析（日次）"
+  - table: public.mart_supply_reserve
+    tableComment: "日次の供給予備率・電力逼迫度分析"
+  - table: public.mart_demand_weather
+    tableComment: "電力需要 × 気象データの日次結合分析"
+  - table: public.mart_daily_solar
+    tableComment: "日次太陽光発電サマリ（5分間隔データから集計）"
+  - table: public.mart_weekly_pattern
+    tableComment: "曜日・季節パターン分析（日次粒度）"
+  - table: public.mart_demand_moving_avg
+    tableComment: "移動平均による需要トレンド分析（日次粒度）"
+  - table: public.mart_demand_anomaly
+    tableComment: "Z-score ベースの異常値検出（日次粒度）"
