@@ -72,7 +72,37 @@ jobs:
 
       # --- tbls ---
       - name: Generate tbls docs
-        run: tbls doc --dsn "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+        run: tbls doc --config .tbls.yml --dsn "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+      - name: Inject virtual relations as FK constraints for Liam ERD
+        run: |
+          python3 -c "
+          import json, sys
+          with open('docs-generated/schema/schema.json') as f:
+              data = json.load(f)
+          relations = data.get('relations', [])
+          if not relations:
+              sys.exit(0)
+          table_map = {t['name']: t for t in data.get('tables', [])}
+          for i, rel in enumerate(relations):
+              child = table_map.get(rel.get('table'))
+              if not child:
+                  continue
+              if 'constraints' not in child or child['constraints'] is None:
+                  child['constraints'] = []
+              child['constraints'].append({
+                  'type': 'FOREIGN KEY',
+                  'name': f'virtual_fk_{i}',
+                  'table': rel.get('table', ''),
+                  'columns': rel.get('columns', []),
+                  'def': rel.get('def', ''),
+                  'referenced_table': rel.get('parent_table', ''),
+                  'referenced_columns': rel.get('parent_columns', []),
+              })
+          with open('docs-generated/schema/schema.json', 'w') as f:
+              json.dump(data, f, ensure_ascii=False)
+          print(f'Injected {len(relations)} virtual FK constraints')
+          "
 
       - name: Convert tbls Markdown to HTML
         run: |
