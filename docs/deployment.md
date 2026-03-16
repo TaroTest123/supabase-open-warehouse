@@ -344,6 +344,18 @@ changes (dorny/paths-filter)
 - 失敗している場合は **Run workflow** で手動再実行
 - 新しい mart モデルを追加した場合、`constants.ts` の `MART_TABLE_SCHEMAS` と `dbt/models/mart/` の両方に変更が含まれているか確認（[ADR-0006](adr/0006-ci-mart-schema-consistency-and-dbt-auto-deploy.md)）
 
+### Scalar UI から API を呼び出すと CORS エラーになる
+
+GitHub Pages 上の Scalar UI (`*.github.io`) から Vercel の Chat API (`*.vercel.app`) を呼ぶと、ブラウザのクロスオリジンポリシーによりリクエストがブロックされます。
+
+**原因**: API ルート (`/api/chat`) に CORS ヘッダーがなかった。ブラウザは異なるオリジン間の fetch を行う際、まず OPTIONS プリフライトリクエストを送信し、サーバーから `Access-Control-Allow-Origin` ヘッダーが返されなければ本リクエストをブロックします。
+
+**対応**: `route.ts` に以下を追加しました:
+- `OPTIONS` ハンドラ（プリフライトリクエストに 204 で応答）
+- すべてのレスポンスに `Access-Control-Allow-Origin: *` / `Allow-Methods` / `Allow-Headers` ヘッダーを付与
+
+**新しい API ルートを追加する際の注意**: 外部ドキュメント（Scalar UI 等）やサードパーティクライアントからの呼び出しが想定される場合は、同様に CORS ヘッダーと OPTIONS ハンドラを追加してください。
+
 ### Vercel でチャットが動作しない
 
 - `SUPABASE_READONLY_DB_URL` が正しいか確認（[readonly-db-setup.md](readonly-db-setup.md) 参照）
