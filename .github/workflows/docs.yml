@@ -72,7 +72,7 @@ jobs:
 
       # --- tbls ---
       - name: Generate tbls docs
-        run: tbls doc --dsn "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+        run: tbls doc --config .tbls.yml --dsn "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
       - name: Convert tbls Markdown to HTML
         run: |
