@@ -23,6 +23,7 @@ supabase/.branches/
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
+dbt/dbdoc/
 dbt/.user.yml
 
 # Python / uv
