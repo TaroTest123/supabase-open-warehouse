@@ -6,11 +6,37 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/functions/**"
+      - "dbt/models/**"
+      - "dbt/dbt_project.yml"
   workflow_dispatch:
 
 jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      supabase: ${{ steps.filter.outputs.supabase }}
+      dbt: ${{ steps.filter.outputs.dbt }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            supabase:
+              - "supabase/migrations/**"
+              - "supabase/functions/**"
+            dbt:
+              - "dbt/models/**"
+              - "dbt/dbt_project.yml"
+
   migrate:
     name: Apply migrations
+    needs: changes
+    if: needs.changes.outputs.supabase == 'true'
     runs-on: ubuntu-latest
     environment: Production
     steps:
@@ -52,3 +78,17 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+  dbt-refresh:
+    name: dbt run & grant permissions
+    needs: [changes, migrate]
+    if: >-
+      always()
+      && needs.changes.result == 'success'
+      && (needs.changes.outputs.dbt == 'true' || needs.changes.outputs.supabase == 'true')
+      && needs.migrate.result != 'failure'
+    uses: ./.github/workflows/dbt-refresh.yml
+    secrets:
+      SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+      SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

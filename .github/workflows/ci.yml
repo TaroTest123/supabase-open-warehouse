@@ -24,9 +24,17 @@ jobs:
 
           # Extract table names from constants.ts (## mart_xxx — description)
           frontend_tables=$(grep -oP '(?<=^## )\w+' frontend/src/lib/constants.ts | sort)
+          if [ -z "$frontend_tables" ]; then
+            echo "::error::No tables extracted from constants.ts — check the grep pattern"
+            exit 1
+          fi
 
           # Extract table names from dbt/models/mart/*.sql (filename without extension)
           dbt_tables=$(find dbt/models/mart -name 'mart_*.sql' -exec basename {} .sql \; | sort)
+          if [ -z "$dbt_tables" ]; then
+            echo "::error::No dbt mart models found in dbt/models/mart/"
+            exit 1
+          fi
 
           echo "=== Tables in constants.ts ==="
           echo "$frontend_tables"
