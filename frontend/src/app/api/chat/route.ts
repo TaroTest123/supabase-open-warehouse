@@ -3,6 +3,12 @@ import type { ChatResponse } from "@/types/chat";
 import { type NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 
+const CORS_HEADERS = {
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Methods": "POST, OPTIONS",
+	"Access-Control-Allow-Headers": "Content-Type",
+};
+
 const FORBIDDEN_PATTERNS = [
 	"INSERT",
 	"UPDATE",
@@ -70,6 +76,10 @@ function getPool() {
 	return readonlyPool;
 }
 
+export function OPTIONS() {
+	return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function POST(request: NextRequest) {
 	try {
 		const body = await request.json();
@@ -78,14 +88,14 @@ export async function POST(request: NextRequest) {
 		if (!message || typeof message !== "string") {
 			return NextResponse.json(
 				{ error: "message は必須です" },
-				{ status: 400 },
+				{ status: 400, headers: CORS_HEADERS },
 			);
 		}
 
 		if (message.length > 1000) {
 			return NextResponse.json(
 				{ error: "メッセージは1000文字以内で入力してください" },
-				{ status: 400 },
+				{ status: 400, headers: CORS_HEADERS },
 			);
 		}
 
@@ -95,7 +105,7 @@ export async function POST(request: NextRequest) {
 			const response: ChatResponse = {
 				content: result.text,
 			};
-			return NextResponse.json(response);
+			return NextResponse.json(response, { headers: CORS_HEADERS });
 		}
 
 		const sqlQuery = result.sql;
@@ -116,7 +126,7 @@ export async function POST(request: NextRequest) {
 			sqlResults: rows,
 		};
 
-		return NextResponse.json(response);
+		return NextResponse.json(response, { headers: CORS_HEADERS });
 	} catch (error) {
 		console.error("[chat/route] Error:", error);
 
@@ -139,6 +149,9 @@ export async function POST(request: NextRequest) {
 			}
 		}
 
-		return NextResponse.json({ error: userMessage }, { status: 500 });
+		return NextResponse.json(
+			{ error: userMessage },
+			{ status: 500, headers: CORS_HEADERS },
+		);
 	}
 }
