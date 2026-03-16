@@ -10,10 +10,10 @@ info:
     identifier: MIT
 
 servers:
-  - url: http://localhost:3000
-    description: Local development
   - url: https://supabase-open-warehouse.vercel.app
     description: Production (Vercel)
+  - url: http://localhost:3000
+    description: Local development
 
 paths:
   /api/chat:
