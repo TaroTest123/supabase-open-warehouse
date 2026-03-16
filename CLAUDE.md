@@ -61,9 +61,13 @@ supabase-open-warehouse/
 │   │   └── mart/           # 分析用集計テーブル
 │   ├── tests/              # dbt テスト
 │   └── dbt_project.yml
+├── bruno/                  # Bruno API コレクション
+│   ├── environments/       # 環境設定 (local / production)
+│   └── chat/               # Chat API リクエスト
 ├── .devcontainer/          # Dev Container 設定
 ├── .github/workflows/      # GitHub Actions CI/CD
 ├── docs/                   # ドキュメント
+│   ├── openapi.yaml        # OpenAPI 3.1 スペック (Chat API)
 │   ├── deployment.md       # デプロイガイド（Supabase / Vercel / GitHub Actions）
 │   └── adr/                # Architecture Decision Records
 ├── biome.json              # Biome (linter/formatter) 設定

@@ -123,7 +123,11 @@ supabase-open-warehouse/
 │   ├── models/                 #   SQL モデル（raw/staging/mart）
 │   ├── tests/                  #   データテスト
 │   └── dbt_project.yml         #   dbt 設定
+├── bruno/                      # Bruno API コレクション
+│   ├── environments/           #   環境設定 (local / production)
+│   └── chat/                   #   Chat API リクエスト
 ├── docs/                       # ドキュメント
+│   ├── openapi.yaml            #   OpenAPI 3.1 スペック (Chat API)
 │   ├── adr/                    #   Architecture Decision Records
 │   ├── architecture.md         #   アーキテクチャ詳細
 │   ├── data-sources.md         #   データソース仕様
