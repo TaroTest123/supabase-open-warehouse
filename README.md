@@ -210,6 +210,29 @@ pnpm check        # Biome lint + format チェック
 pnpm check:fix    # Biome lint + format 自動修正
 ```
 
+## API ドキュメント
+
+API 仕様は **OpenAPI 3.1** (`docs/openapi.yaml`) で定義されており、2 つの方法で閲覧できます。
+
+| 閲覧方法 | 説明 |
+|---------|------|
+| [Scalar UI](./api/) (GitHub Pages) | リッチな API リファレンス。main push 時に自動デプロイ |
+| `docs/openapi.yaml` | ソースファイル。任意の OpenAPI ビューアで閲覧可能 |
+
+## Bruno（API テスト）
+
+`bruno/` ディレクトリには Chat API の実行可能なテストリクエストが含まれています。
+Bruno はドキュメント生成機能を持たないため、API 仕様の閲覧には上記の Scalar UI を使用してください。
+
+```bash
+# Bruno CLI でテスト実行（dev サーバー起動中に実行）
+npm install -g @usebruno/cli
+cd bruno && bru run --env local
+```
+
+`.bru` ファイルはプレーンテキストなので、エディタでも内容を確認できます。
+デスクトップアプリ（[usebruno.com](https://www.usebruno.com/)）を使えば GUI でリクエストを実行・閲覧できます。
+
 ## 参考リンク
 
 - [TEPCO でんき予報](https://www.tepco.co.jp/forecast/) — データソース
