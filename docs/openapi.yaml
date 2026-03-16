@@ -255,8 +255,9 @@ components:
       type: http
       scheme: bearer
       description: |
-        Supabase の Secret key (`sb_secret_...`) を Bearer トークンとして指定。
+        Supabase の service_role key を Bearer トークンとして指定。
         Edge Functions の認証に必要です。
+        Settings → API Keys の `service_role` key（`eyJ...` 形式の JWT）を使用してください。
 
   schemas:
     ChatRequest:
