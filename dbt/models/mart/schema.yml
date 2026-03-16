@@ -168,3 +168,74 @@ models:
         description: "日次平均需要 (MW)"
       - name: record_count
         description: "レコード数"
+
+  - name: mart_weekly_pattern
+    description: "曜日・季節パターン分析（日次粒度）"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: day_of_week
+        description: "曜日番号 (1=月..7=日)"
+      - name: day_name
+        description: "曜日名 (Mon, Tue, ...)"
+      - name: season
+        description: "季節 (spring/summer/autumn/winter)"
+      - name: peak_demand_mw
+        description: "日次ピーク需要 (MW)"
+      - name: min_demand_mw
+        description: "日次最小需要 (MW)"
+      - name: avg_demand_mw
+        description: "日次平均需要 (MW)"
+      - name: max_usage_pct
+        description: "日次最大使用率 (%)"
+      - name: avg_usage_pct
+        description: "日次平均使用率 (%)"
+      - name: record_count
+        description: "レコード数"
+
+  - name: mart_demand_moving_avg
+    description: "移動平均による需要トレンド分析（日次粒度）"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: peak_demand_mw
+        description: "日次ピーク需要 (MW)"
+      - name: avg_demand_mw
+        description: "日次平均需要 (MW)"
+      - name: max_usage_pct
+        description: "日次最大使用率 (%)"
+      - name: avg_demand_7d_ma
+        description: "平均需要 7日移動平均 (MW)"
+      - name: avg_demand_30d_ma
+        description: "平均需要 30日移動平均 (MW)"
+      - name: peak_demand_7d_ma
+        description: "ピーク需要 7日移動平均 (MW)"
+      - name: peak_demand_30d_ma
+        description: "ピーク需要 30日移動平均 (MW)"
+
+  - name: mart_demand_anomaly
+    description: "Z-score ベースの異常値検出（日次粒度）"
+    columns:
+      - name: demand_date
+        description: "需要日"
+        tests:
+          - unique
+          - not_null
+      - name: peak_demand_mw
+        description: "日次ピーク需要 (MW)"
+      - name: avg_demand_mw
+        description: "日次平均需要 (MW)"
+      - name: max_usage_pct
+        description: "日次最大使用率 (%)"
+      - name: avg_demand_zscore
+        description: "平均需要の Z-score"
+      - name: peak_demand_zscore
+        description: "ピーク需要の Z-score"
+      - name: is_anomaly
+        description: "異常値フラグ (|Z| > 2)"

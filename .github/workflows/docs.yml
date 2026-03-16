@@ -133,6 +133,26 @@ jobs:
         working-directory: dbt
         run: uv run dbt docs generate --profiles-dir .
 
+      # --- Scalar API docs ---
+      - name: Build Scalar API Reference
+        run: |
+          mkdir -p _site/api
+          cp docs/openapi.yaml _site/api/openapi.yaml
+          cat > _site/api/index.html <<'SCALAR_HTML'
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>API Reference - Supabase Open Warehouse</title>
+          </head>
+          <body>
+            <script id="api-reference" data-url="./openapi.yaml"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+          </body>
+          </html>
+          SCALAR_HTML
+
       # --- Assemble site ---
       - name: Assemble _site
         run: |
