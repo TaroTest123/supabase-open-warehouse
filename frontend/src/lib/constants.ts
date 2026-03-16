@@ -85,6 +85,43 @@ export const MART_TABLE_SCHEMAS = `
 | max_radiation_wm2 | NUMERIC | 最大日射量 (W/m²) |
 | avg_wind_speed_ms | NUMERIC | 平均風速 (m/s) |
 | avg_cloud_cover_pct | NUMERIC | 平均雲量 (%) |
+
+## mart_weekly_pattern — 曜日・季節パターン分析
+| カラム名 | 型 | 説明 |
+|---------|------|------|
+| demand_date | DATE | 需要日 |
+| day_of_week | INTEGER | 曜日番号 (1=月..7=日) |
+| day_name | TEXT | 曜日名 (Mon, Tue, ...) |
+| season | TEXT | 季節 (spring/summer/autumn/winter) |
+| peak_demand_mw | NUMERIC | 日次ピーク需要 (MW) |
+| min_demand_mw | NUMERIC | 日次最小需要 (MW) |
+| avg_demand_mw | NUMERIC | 日次平均需要 (MW) |
+| max_usage_pct | NUMERIC | 日次最大使用率 (%) |
+| avg_usage_pct | NUMERIC | 日次平均使用率 (%) |
+| record_count | BIGINT | レコード数 |
+
+## mart_demand_moving_avg — 移動平均による需要トレンド分析
+| カラム名 | 型 | 説明 |
+|---------|------|------|
+| demand_date | DATE | 需要日 |
+| peak_demand_mw | NUMERIC | 日次ピーク需要 (MW) |
+| avg_demand_mw | NUMERIC | 日次平均需要 (MW) |
+| max_usage_pct | NUMERIC | 日次最大使用率 (%) |
+| avg_demand_7d_ma | NUMERIC | 平均需要 7日移動平均 (MW) |
+| avg_demand_30d_ma | NUMERIC | 平均需要 30日移動平均 (MW) |
+| peak_demand_7d_ma | NUMERIC | ピーク需要 7日移動平均 (MW) |
+| peak_demand_30d_ma | NUMERIC | ピーク需要 30日移動平均 (MW) |
+
+## mart_demand_anomaly — Z-score ベースの異常値検出
+| カラム名 | 型 | 説明 |
+|---------|------|------|
+| demand_date | DATE | 需要日 |
+| peak_demand_mw | NUMERIC | 日次ピーク需要 (MW) |
+| avg_demand_mw | NUMERIC | 日次平均需要 (MW) |
+| max_usage_pct | NUMERIC | 日次最大使用率 (%) |
+| avg_demand_zscore | NUMERIC | 平均需要の Z-score |
+| peak_demand_zscore | NUMERIC | ピーク需要の Z-score |
+| is_anomaly | BOOLEAN | 異常値フラグ (|Z| > 2) |
 `;
 
 export const SQL_GENERATION_PROMPT = `あなたは東京電力（TEPCO）の電力需要・太陽光発電・気象データの分析アシスタントです。
