@@ -1,23 +1,40 @@
 openapi: 3.1.0
 info:
-  title: Supabase Open Warehouse Chat API
+  title: Supabase Open Warehouse API
   description: |
-    TEPCO 電力需要データに対して自然言語で問い合わせを行う Chat API。
-    Claude API を使って自然言語を SQL に変換し、読み取り専用ロールで実行した結果を要約して返します。
+    TEPCO 電力需要データウェアハウスの API 仕様。
+
+    - **Chat API** (Vercel): 自然言語で電力需要データに問い合わせ
+    - **Edge Functions** (Supabase): データ取り込み（TEPCO CSV/ZIP、気象データ）
   version: 1.0.0
   license:
     name: MIT
     identifier: MIT
 
 servers:
-  - url: http://localhost:3000
-    description: Local development
   - url: https://supabase-open-warehouse.vercel.app
-    description: Production (Vercel)
+    description: Production — Chat API (Vercel)
+  - url: http://localhost:3000
+    description: Local — Chat API
+  - url: https://{projectRef}.supabase.co/functions/v1
+    description: Production — Edge Functions (Supabase)
+    variables:
+      projectRef:
+        description: Supabase プロジェクト参照 ID
+        default: your-project-ref
+  - url: http://localhost:54321/functions/v1
+    description: Local — Edge Functions
+
+tags:
+  - name: Chat
+    description: 自然言語 → SQL 変換チャット API (Vercel)
+  - name: Ingestion
+    description: データ取り込み Edge Functions (Supabase) — service_role key 必須
 
 paths:
   /api/chat:
     post:
+      tags: [Chat]
       operationId: sendChatMessage
       summary: チャットメッセージ送信
       description: |
@@ -90,7 +107,157 @@ paths:
                   value:
                     error: "SQLのカラム名が曖昧でした。質問を少し変えて再度お試しください。"
 
+  /ingest-tepco-csv:
+    post:
+      tags: [Ingestion]
+      operationId: ingestTepcoCsv
+      summary: TEPCO 電力需要データ取り込み
+      description: |
+        TEPCO でんき予報の CSV または月別 ZIP をダウンロードし、
+        `raw_tepco_demand`（1時間間隔）と `raw_tepco_demand_5min`（5分間隔）に upsert します。
+
+        - URL 未指定時は当日の日次 CSV (`juyo-d1-j.csv`) を取り込み
+        - ZIP URL を指定すると月別5分間隔データを取り込み
+        - Shift_JIS エンコーディングを自動デコード
+        - バッチサイズ 1,000 行で upsert
+        - 取り込み結果は `ingestion_log` テーブルに記録
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: url
+          in: query
+          required: false
+          description: |
+            取り込み元の CSV/ZIP URL。省略時はデフォルト（当日の日次 CSV）を使用。
+          schema:
+            type: string
+            format: uri
+          examples:
+            daily:
+              summary: 当日の日次 CSV（デフォルト）
+              value: "https://www.tepco.co.jp/forecast/html/images/juyo-d1-j.csv"
+            yearly:
+              summary: 年次 CSV（1時間間隔、3列のみ）
+              value: "https://www.tepco.co.jp/forecast/html/images/juyo-2024.csv"
+            monthly_zip:
+              summary: 月別 ZIP（5分間隔データ含む）
+              value: "https://www.tepco.co.jp/forecast/html/images/202501_power_usage.zip"
+      responses:
+        "200":
+          description: 取り込み結果（成功・部分成功・エラー）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestTepcoResponse"
+              examples:
+                success:
+                  summary: 日次 CSV 取り込み成功
+                  value:
+                    status: "success"
+                    hourly_rows: 48
+                    five_min_rows: 0
+                    rows_fetched: 48
+                    rows_upserted: 48
+                    url: "https://www.tepco.co.jp/forecast/html/images/juyo-d1-j.csv"
+                zip_success:
+                  summary: 月別 ZIP 取り込み成功
+                  value:
+                    status: "success"
+                    hourly_rows: 744
+                    five_min_rows: 8928
+                    rows_fetched: 9672
+                    rows_upserted: 9672
+                    url: "https://www.tepco.co.jp/forecast/html/images/202501_power_usage.zip"
+                error:
+                  summary: CSV 取得失敗
+                  value:
+                    status: "error"
+                    rows_fetched: 0
+                    rows_upserted: 0
+                    url: "https://www.tepco.co.jp/forecast/html/images/juyo-d1-j.csv"
+                    error: "Failed to fetch data: 404 Not Found"
+        "401":
+          description: 認証エラー（Authorization ヘッダー未設定または不正）
+
+  /ingest-weather:
+    post:
+      tags: [Ingestion]
+      operationId: ingestWeather
+      summary: 気象データ取り込み（Open-Meteo）
+      description: |
+        Open-Meteo Historical Weather API から東京エリアの気象データを取得し、
+        `raw_weather_tokyo` テーブルに upsert します。
+
+        取得項目: 気温、湿度、降水量、日射量、風速、風向、雲量、気圧（1時間間隔）
+
+        - 座標: 東京 (35.6894°N, 139.6917°E)
+        - タイムゾーン: Asia/Tokyo
+        - バッチサイズ 500 行で upsert
+        - 取り込み結果は `ingestion_log` テーブルに記録
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          description: 取得開始日（YYYY-MM-DD）
+          schema:
+            type: string
+            format: date
+          example: "2025-01-01"
+        - name: end_date
+          in: query
+          required: true
+          description: 取得終了日（YYYY-MM-DD）
+          schema:
+            type: string
+            format: date
+          example: "2025-01-31"
+      responses:
+        "200":
+          description: 取り込み結果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestWeatherResponse"
+              examples:
+                success:
+                  summary: 1ヶ月分の取り込み成功
+                  value:
+                    status: "success"
+                    rows_fetched: 744
+                    rows_upserted: 744
+                    start_date: "2025-01-01"
+                    end_date: "2025-01-31"
+        "400":
+          description: パラメータ不足
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missing_params:
+                  summary: 必須パラメータ未指定
+                  value:
+                    error: "start_date and end_date query parameters are required (YYYY-MM-DD)"
+        "401":
+          description: 認証エラー（Authorization ヘッダー未設定または不正）
+        "500":
+          description: サーバーエラー（Open-Meteo API 障害等）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Supabase の Secret key (`sb_secret_...`) を Bearer トークンとして指定。
+        Edge Functions の認証に必要です。
+
   schemas:
     ChatRequest:
       type: object
@@ -131,3 +298,79 @@ components:
         error:
           type: string
           description: エラーメッセージ
+
+    IngestTepcoResponse:
+      type: object
+      required:
+        - status
+        - rows_fetched
+        - rows_upserted
+        - url
+      properties:
+        status:
+          type: string
+          enum: [success, partial, error]
+          description: |
+            取り込みステータス:
+            - `success`: 全行 upsert 成功
+            - `partial`: 一部バッチでエラー
+            - `error`: 全行失敗またはデータ取得失敗
+        hourly_rows:
+          type: integer
+          description: upsert した1時間間隔データの行数
+        five_min_rows:
+          type: integer
+          description: upsert した5分間隔データの行数
+        rows_fetched:
+          type: integer
+          description: 取得した総行数
+        rows_upserted:
+          type: integer
+          description: upsert した総行数
+        url:
+          type: string
+          description: 取り込み元 URL
+        error:
+          type: string
+          description: エラーメッセージ（エラー時のみ）
+        errors:
+          type: array
+          items:
+            type: string
+          description: バッチごとのエラーメッセージ（部分成功時のみ）
+
+    IngestWeatherResponse:
+      type: object
+      required:
+        - status
+        - rows_fetched
+        - rows_upserted
+        - start_date
+        - end_date
+      properties:
+        status:
+          type: string
+          enum: [success, partial, error]
+          description: 取り込みステータス
+        rows_fetched:
+          type: integer
+          description: 取得した行数
+        rows_upserted:
+          type: integer
+          description: upsert した行数
+        start_date:
+          type: string
+          format: date
+          description: 取得開始日
+        end_date:
+          type: string
+          format: date
+          description: 取得終了日
+        error:
+          type: string
+          description: エラーメッセージ（エラー時のみ）
+        errors:
+          type: array
+          items:
+            type: string
+          description: バッチごとのエラーメッセージ（部分成功時のみ）
